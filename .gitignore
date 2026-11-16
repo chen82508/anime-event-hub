@@ -1,0 +1,19 @@
+node_modules/
+.turbo/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# env（SLACK_WEBHOOK_URL 等機密只放 .env）
+.env
+.env.*
+!.env.example
+
+# 原始快照（tech-spec D4；保留 30 天、不進版控）
+var/*
+!var/.gitkeep
+
+.DS_Store
+*.log

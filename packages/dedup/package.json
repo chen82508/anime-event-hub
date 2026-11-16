@@ -1,0 +1,23 @@
+{
+  "name": "@aeh/dedup",
+  "version": "0.0.0",
+  "private": true,
+  "description": "去重鍵、候選比對、合併規則（純函式）",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aeh/core": "workspace:*",
+    "@aeh/normalize": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

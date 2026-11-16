@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+docs/
+var/
+**/.next/
+**/.turbo/
+**/dist/
+**/coverage/
+packages/db/migrations/
+**/fixtures/

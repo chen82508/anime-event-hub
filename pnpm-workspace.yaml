@@ -1,0 +1,32 @@
+packages:
+  - apps/*
+  - packages/*
+
+# 共用版本（各 workspace 以 "catalog:" 引用，升級只改這裡）
+catalog:
+  # tooling
+  typescript: ~6.0.3 # typescript-eslint 目前僅支援 <6.1，勿升到 7.x
+  '@types/node': ^22.19.0
+  tsx: ^4.23.15
+  vitest: ^5.1.0
+  # runtime
+  zod: ^4.6.7
+  drizzle-orm: ^0.45.4
+  drizzle-kit: ^0.31.11
+  postgres: ^4.1.1
+  cheerio: ^1.2.0
+  date-fns: ^4.4.0
+  date-fns-tz: ^3.2.0
+  fast-xml-parser: ^5.12.1
+  pino: ^10.4.0
+  node-cron: ^4.6.0
+  yaml: ^2.9.1
+  next: ^16.4.6
+  react: ^19.3.1
+  react-dom: ^19.3.1
+  '@types/react': ^19.3.0
+  '@types/react-dom': ^19.3.0
+
+# pnpm 預設不執行相依套件的 install script；僅允許下列必要者
+allowBuilds:
+  esbuild: true

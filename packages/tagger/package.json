@@ -1,0 +1,23 @@
+{
+  "name": "@aeh/tagger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "活動類型推論、關鍵字/別名字典比對（純函式）",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aeh/core": "workspace:*",
+    "@aeh/normalize": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@aeh/scrapers",
+  "version": "0.0.0",
+  "private": true,
+  "description": "各來源擷取器（共同 Scraper 介面；parse 為純函式）",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aeh/core": "workspace:*",
+    "@aeh/normalize": "workspace:*",
+    "@aeh/tagger": "workspace:*",
+    "cheerio": "catalog:",
+    "fast-xml-parser": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

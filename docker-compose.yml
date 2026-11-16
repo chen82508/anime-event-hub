@@ -1,0 +1,38 @@
+name: anime-event-hub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aeh
+      POSTGRES_PASSWORD: aeh
+      POSTGRES_DB: anime_event_hub
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次初始化時執行：啟用 pg_trgm、建立測試 DB
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aeh -d anime_event_hub']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # 選配：DB 瀏覽介面 → docker compose --profile tools up -d adminer（http://localhost:8080）
+  adminer:
+    image: adminer:latest
+    profiles: [tools]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '${ADMINER_PORT:-8080}:8080'
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  # TODO(T9/T10): profiles: [full] 的 worker / web 容器，待各 app 有 Dockerfile 後加入
+
+volumes:
+  pgdata:

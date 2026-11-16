@@ -1,0 +1,42 @@
+{
+  "name": "anime-event-hub",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && pnpm db:up",
+    "db:psql": "docker compose exec postgres psql -U aeh -d anime_event_hub",
+    "db:generate": "pnpm --filter @aeh/db run db:generate",
+    "db:migrate": "pnpm --filter @aeh/db run db:migrate",
+    "db:seed": "pnpm --filter @aeh/db run db:seed",
+    "db:studio": "pnpm --filter @aeh/db run db:studio",
+    "crawl": "pnpm --filter @aeh/worker run crawl",
+    "reparse": "pnpm --filter @aeh/worker run reparse"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "catalog:",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "turbo": "^2.11.11",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "catalog:"
+  }
+}
