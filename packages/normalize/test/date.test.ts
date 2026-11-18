@@ -86,11 +86,18 @@ describe('parseEventDate：時區與輸出（R1）', () => {
     expect(parseEventDate('1/2(五)', null, { referenceDate: '2026-12-01' }).kind).toBe('ambiguous');
   });
 
-  it('maxForwardDays 可設定', () => {
-    expect(parseEventDate('8/1', null, { referenceDate: '2026-11-01' }).kind).toBe('ok');
+  it('maxForwardDays 可設定（預設 240 天）', () => {
+    expect(parseEventDate('6/1', null, { referenceDate: '2026-11-01' }).kind).toBe('ok');
     expect(
-      parseEventDate('8/1', null, { referenceDate: '2026-11-01', maxForwardDays: 180 }).kind,
+      parseEventDate('6/1', null, { referenceDate: '2026-11-01', maxForwardDays: 180 }).kind,
     ).toBe('ambiguous');
+    expect(
+      parseEventDate('8/1', null, { referenceDate: '2026-11-01', maxForwardDays: 300 }).kind,
+    ).toBe('ok');
+  });
+
+  it('公告日兩個多月後的回顧文不會被推成隔年（M6）', () => {
+    expect(parseEventDate('9/1', null, { referenceDate: '2026-11-18' }).kind).toBe('ambiguous');
   });
 
   it('ambiguous 附上原因', () => {

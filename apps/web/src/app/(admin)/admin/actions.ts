@@ -9,6 +9,7 @@ import {
   EVENT_TYPES,
   REVIEW_REASONS,
   REVIEW_REASON_LABEL,
+  RawEventCandidateSchema,
   TAIWAN_CITIES,
   type EventStatus,
   type ReviewReason,
@@ -24,10 +25,15 @@ import {
   removeTag,
   resolveReviewReasons,
   setEventStatus,
+  getEventDetail,
+  loadMatchingDictionaries,
+  splitEventSource,
   type AdminFieldChanges,
 } from '@aeh/db';
+import { normalizeCandidate } from '@aeh/scrapers';
+import { Tagger } from '@aeh/tagger';
 import { dedupKey } from '@aeh/dedup';
-import { normalizeTitle, taipeiDateTime } from '@aeh/normalize';
+import { VenueResolver, normalizeTitle, taipeiDateString, taipeiDateTime } from '@aeh/normalize';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -121,8 +127,14 @@ export async function saveEventAction(formData: FormData): Promise<void> {
   }
 
   let changed: string[];
+  let demoted = false;
+  let reasons: ReviewReason[] = [];
   try {
-    ({ changed } = await applyAdminEdit(getDb(), {
+    ({
+      changed,
+      demoted,
+      reviewReasons: reasons,
+    } = await applyAdminEdit(getDb(), {
       id,
       actor: await currentActor(),
       changes,
@@ -133,6 +145,13 @@ export async function saveEventAction(formData: FormData): Promise<void> {
     back(id, (err as Error).message, 'error');
   }
   revalidatePath('/admin');
+  if (demoted) {
+    back(
+      id,
+      `已儲存並鎖定：${changed.join('、')}。活動不再符合發布條件，已退回待審（${reasons.map((r) => REVIEW_REASON_LABEL[r]).join('、')}）`,
+      'error',
+    );
+  }
   back(id, changed.length > 0 ? `已儲存並鎖定：${changed.join('、')}` : '沒有變更');
 }
 
@@ -202,6 +221,42 @@ export async function mergeIntoAction(formData: FormData): Promise<void> {
   }
   revalidatePath('/admin');
   redirect(`/admin/events/${intoId.data}?ok=${encodeURIComponent(`已將 #${fromId} 合併進來`)}`);
+}
+
+/**
+ * 拆分（T10）：把某個來源拆成獨立的新活動（被誤合併的不同場次等）。
+ * 以該來源保存的 parsed 用目前字典重新正規化；新活動為待審且狀態鎖定，由審核者確認後發布。
+ */
+export async function splitSourceAction(formData: FormData): Promise<void> {
+  const id = Id.parse(formData.get('id'));
+  const sourceItemId = Id.parse(formData.get('sourceItemId'));
+  const db = getDb();
+  const detail = await getEventDetail(db, id);
+  const src = detail?.sources.find((s) => s.sourceItemId === sourceItemId);
+  if (!src) back(id, '找不到此來源', 'error');
+  const parsed = RawEventCandidateSchema.safeParse(src.parsed);
+  if (!parsed.success) back(id, '此來源沒有可用的解析資料，無法拆分', 'error');
+
+  const dicts = await loadMatchingDictionaries(db);
+  const r = normalizeCandidate(parsed.data, {
+    venues: new VenueResolver(dicts.venues, dicts.cities),
+    tagger: new Tagger({ typeKeywords: dicts.typeKeywords, tags: dicts.tags }),
+    fetchedOn: taipeiDateString(src.lastSeenAt),
+  });
+  let newId: number;
+  try {
+    newId = await splitEventSource(db, {
+      eventId: id,
+      sourceItemId,
+      actor: await currentActor(),
+      newEvent: { normalized: r.event, dedupKey: dedupKey(r.event), notes: r.notes },
+      tags: r.tags.map((t) => ({ tagId: t.tag.id, origin: t.origin, matchedBy: t.matchedBy })),
+    });
+  } catch (err) {
+    back(id, (err as Error).message, 'error');
+  }
+  revalidatePath('/admin');
+  redirect(`/admin/events/${newId}?ok=${encodeURIComponent(`已從 #${id} 拆分為新活動（待審）`)}`);
 }
 
 // ── 字典快捷操作 ──────────────────────────────────────────

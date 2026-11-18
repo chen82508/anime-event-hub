@@ -273,6 +273,29 @@ describe('planSourceUpdate（同一來源內容變動）', () => {
     expect(plan.patch).toEqual({ priceMin: 800, priceMax: 800 });
   });
 
+  it('人工退回待審（statusLocked）→ 即使可自動發布也維持待審（H1）', () => {
+    const plan = planSourceUpdate({
+      current: { ...fields(), reviewReasons: [], status: 'pending_review', statusLocked: true },
+      incoming: normalized(),
+      locked: [],
+      isPrimary: true,
+      previous: fields(),
+    });
+    expect(plan.status).toBe('pending_review');
+    expect(plan.reviewReasons).toEqual([]);
+  });
+
+  it('未鎖定的待審活動：原因清空後自動發布', () => {
+    const plan = planSourceUpdate({
+      current: { ...fields(), reviewReasons: ['ambiguous_date'], status: 'pending_review' },
+      incoming: normalized(),
+      locked: [],
+      isPrimary: true,
+      previous: fields(),
+    });
+    expect(plan.status).toBe('published');
+  });
+
   it('隱藏的活動維持隱藏；possible_duplicate 保留到人工解除', () => {
     const plan = planSourceUpdate({
       current: { ...fields(), reviewReasons: ['possible_duplicate'], status: 'hidden' },

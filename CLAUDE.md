@@ -74,7 +74,7 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 
 - **比對一律用 `normalizeForMatch()`**（NFKC → 去零寬/emoji → 小寫 → 臺→台 → 標點符號轉空白）；場館/縣市用去空白的 `compactForMatch()`。改動正規化規則要重跑 tagger／dedup 測試。
 - **字典比對**共用 `LongestMatcher`（最左最長、不重疊）。拉丁字母別名一律要求整詞邊界；≤2 字的中日文別名需邊界，除非在 `DEFAULT_SHORT_ALIAS_WHITELIST`。
-- **日期**：`parseEventDate(dateText, timeText, { referenceDate })`，`referenceDate` 傳公告日（沒有才用擷取日）。缺年份以「結束日 ≥ 基準日」推論並標 `yearInferred`；星期不符、多場次、不連續日期、`11/30-2` 之類一律回 `ambiguous`。全天區間的 `endAt` = 結束日 23:59:59（台灣時間）。
+- **日期**：`parseEventDate(dateText, timeText, { referenceDate })`，`referenceDate` 傳公告日（沒有才用擷取日）。缺年份以「結束日 ≥ 基準日」推論並標 `yearInferred`，推論結果距基準日超過 240 天（`DEFAULT_MAX_FORWARD_DAYS`）→ `ambiguous`；星期不符、多場次、不連續日期、`11/30-2` 之類一律回 `ambiguous`。全天區間的 `endAt` = 結束日 23:59:59（台灣時間）。
 - **票價**：金額需有幣別／「元」／票種標籤，避免把「限量100張」當票價；「免費入場＋付費票種」→ `min = 0`、`isFree = false`。
 - **場館**：命中多個場館 → `ambiguous`（R5，人工拆分）；未命中且無台灣縣市但有海外地名 → `outside_taiwan`；`venueReviewReasons()` 對應 §4.3。
 - **類型**：擷取器 `typeHint` → `SOURCE_DEFAULT_TYPE`（cwt → doujin、tica/comic_exhibition → expo；FF 同時有同人展與演唱會，由擷取器依區塊給 typeHint）→ 關鍵字（priority 高者勝，同分不同類 → `type_unresolved`）。場館名中的「展覽館」等不算關鍵字。
@@ -94,72 +94,10 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 - **告警**（`apps/worker/src/alerts.ts`）：規則（失敗、連續 N 次 0 筆、缺漏率突增）是純函式 `evaluateRunAlerts()`；節流狀態存 DB `alert_state`（CLI 與排程是不同 process）。`ALERT_MODE=console` 只寫 log。
 - **後台**（`apps/web`）：`src/proxy.ts`（Next 16 的 middleware）做 Basic Auth，操作者名稱寫進 `x-admin-user` → `audit_log.actor`。Server Actions 在 `app/(admin)/admin/actions.ts`；欄位只有「實際有變」才寫入 `locked_fields`（表單的 23:59 存成 23:59:59，避免未改的表單被誤鎖）。發布前檢查必要欄位與審核原因，DB CHECK 約束是最後防線。
 - **新 schema**（migration `0001_review_dedup_alerts`）：`event.dedup_key`、`event.review_notes`、`crawl_run.items_missing_fields`、`alert_state` 表。
-
-## 開發慣例
-
-- **時區**：一律以 `Asia/Taipei` 解析（`@aeh/core` 的 `TIMEZONE`），DB 用 `timestamptz` 存 UTC。區分 `all_day` 與有時刻的活動。使用 `date-fns-tz`，不要用 `new Date('2026-11-16')`（會被當成 UTC）。
-- **字串比對**：比對一律經 `normalizeForMatch()`（T4 實作）；**顯示一律用原文**。
-- **人工覆寫**：管理者改過的欄位寫入 `locked_fields`，重新擷取不得覆蓋；來源變動改標 `source_changed` 待審。
-- **去重**：寧可漏合併（進待審），不要誤合併。灰色區間 → `possible_duplicate`。
-- **門檻值設定化**：KKTIX 規模門檻、連續 N 次 0 筆告警（預設 3）等都放設定，不寫死。
-- **測試**：解析器一律用離線 HTML fixture（`fixtures/*.html`，保存原始 bytes），測試不打真實網站。DB 整合測試用 `DATABASE_URL_TEST`（`packages/db/test/helpers.ts` 會 drop schema 重建，僅允許名稱以 `_test` 結尾的 DB）；worker 的管線整合測試另外自動建立 `<name>_worker_test`，避免 turbo 平行執行時互相 drop schema。未設定時略過並警告，因此 `pnpm test` 前要先 `pnpm db:up`。
-- **告警**：Slack webhook（`SLACK_WEBHOOK_URL`），未設定時降級為 log；webhook 失敗不得中斷管線。
-- **機密**：`.env` 不進版控；不要把 webhook URL、個人聯絡資料寫進程式碼。
-- **語言**：程式碼識別字用英文；註解、UI、log 訊息、文件可用繁體中文。
-- TypeScript：`strict` + `noUncheckedIndexedAccess`；ESM；`moduleResolution: Bundler`（相對 import 不需副檔名）；型別 import 用 `import type`。
-
----
-
-## 常用指令
-
-> 需求：Node ≥ 22.12（`.nvmrc` = 22）、pnpm 12、Docker。首次請 `cp .env.example .env`。
-
-```bash
-pnpm i                 # 安裝（esbuild 的 install script 已在 pnpm-workspace.yaml allowBuilds 允許）
-
-# 資料庫（Docker，host 埠預設 5433）
-pnpm db:up             # 啟動 PostgreSQL 16 並等待 healthy
-pnpm db:down           # 停止（保留資料）
-pnpm db:reset          # 刪除 volume 重建（會重跑 docker/postgres/init）
-pnpm db:psql           # 進入 psql
-pnpm db:generate       # drizzle-kit 依 schema 產生 migration（packages/db/migrations）
-pnpm db:migrate        # 套用 migration
-pnpm db:seed           # 驗證並匯入 data/dictionaries/*.yaml（可重複執行）
-pnpm db:studio         # Drizzle Studio
-
-# 開發
-pnpm dev                                   # turbo：web（:3000）+ worker（tsx watch）
-pnpm --filter @aeh/web dev                 # 只跑後台
-pnpm crawl --source kktix --dry-run        # 單一來源，只印結果不寫 DB
-pnpm crawl --source cwt -v                 # 擷取並列出每筆的處理結果
-pnpm crawl --all                           # DB 中 enabled 的來源
-pnpm crawl --from-snapshot <raw_snapshot.id>
-pnpm reparse --source kktix                # 以最近一次擷取的快照重跑解析，不打網路
-pnpm --filter @aeh/worker cli dedup [--dry-run]   # 重算去重鍵並合併同鍵活動
-pnpm --filter @aeh/worker cli cleanup             # 刪除逾期快照（≤ 30 天）、標記已結束活動
-pnpm --filter @aeh/worker start            # 排程（node-cron，Asia/Taipei；CRON_DAILY / CRON_WEEKLY / CRON_CLEANUP）
-
-# 品質檢查
-pnpm typecheck         # turbo → 各套件 tsc（web 先跑 next typegen）
-pnpm test              # turbo → 各套件 vitest run
-pnpm lint              # 根目錄 eslint（flat config）
-pnpm format            # prettier --write（docs/、fixtures/ 不格式化）
-pnpm check             # format:check + lint + typecheck + test（提交前跑這個）
-
-# 單一套件
-pnpm --filter @aeh/normalize test
-pnpm --filter @aeh/normalize exec vitest      # watch mode
-```
-
----
-
-## 注意事項 / 已知陷阱
-
-- **TypeScript 鎖在 `~6.0`**：typescript-eslint 目前只支援 `<6.1`，不要升到 TS 7。
-- **本機 5432 已有 Postgres**：Docker DB 映射到 `POSTGRES_PORT`（預設 5433），`DATABASE_URL` 要一致。
-- `docker/postgres/init/*.sql` 只在 volume **首次**建立時執行；第一支 migration 仍須自己 `CREATE EXTENSION IF NOT EXISTS pg_trgm;`。
-- `pnpm --filter` 會把 cwd 換成套件目錄；worker 的 `SNAPSHOT_DIR` 相對路徑以 **repo 根目錄**為基準解析（`apps/worker/src/env.ts`）。
-- `apps/web/next-env.d.ts` 由 Next 產生且已 gitignore；`typecheck` 會先 `next typegen`。
-- `docker-compose.yml` 的 `profiles: [full]`（worker/web 容器）尚未加入，等兩個 app 有 Dockerfile 後補上。
-- **被 Next 打包的套件不能用 `new URL('../x/', import.meta.url)`**：Turbopack 會把它當成資產解析而 build 失敗（`packages/db/src/env.ts` 改用 `path.join`）。
-- KKTIX 的 `events.json` 在 Cloudflare 驗證之後，只用 Atom feed；不要嘗試繞過防護。
+- **人工狀態鎖**（`event.status_locked`，migration `0002`）：後台「退回待審／隱藏／取消／結束」會鎖定狀態，管線不再自動改變（含自動發布）；手動發布時解除。拆分出的新活動也是鎖定的待審。
+- **執行鎖**：`crawl_run_one_running_uq`（partial unique index）保證同一來源同時只有一個執行中的 run（排程與手動 CLI 互斥）；超過 6 小時仍 running 的殘留 run 會被標為失敗。
+- **線上活動（C6）**：海外地名優先於線上判定；只有 `ONLINE_TRUSTED_SOURCES`（kktix、cwt、ff）的線上活動可自動發布，其它來源 → `outside_taiwan` 待審並附說明。
+- **robots.txt 快取**：24 小時（取得失敗 1 小時）後重讀，排程程序不必重啟就會套用網站的新規則。
+- **KKTIX 規模門檻**：場館不在字典時，票價達 `KKTIX_MIN_PRICE_MAX` 或命中作品/聲優/歌手標籤（`KKTIX_TAG_PASSES`）才算達門檻。
+- **後台編輯**：讓已發布活動不再符合發布條件時，自動退回待審並補上原因（不會撞 DB CHECK）。
+- **測試覆蓋率**：`pnpm coverage`（normalize / tagger / dedup，門檻 80%）。

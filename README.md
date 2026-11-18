@@ -66,25 +66,26 @@ pnpm i
 cp .env.example .env
 ```
 
-| 變數                      | 說明                                                       | 預設                                                         |
-| ------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
-| `POSTGRES_PORT`           | Docker Postgres 映射到 host 的埠（避開本機既有的 5432）    | `5433`                                                       |
-| `DATABASE_URL`            | 開發用 DB 連線字串                                         | `postgres://aeh:aeh@localhost:5433/anime_event_hub`          |
-| `DATABASE_URL_TEST`       | 整合測試用 DB                                              | `postgres://aeh:aeh@localhost:5433/anime_event_hub_test`     |
-| `CRAWL_USER_AGENT`        | 擷取器 UA，需標示專案名稱與聯絡方式                        | `AnimeEventHubTW-Bot/0.1 (+https://example.invalid/contact)` |
-| `CRAWL_MIN_INTERVAL_MS`   | 同一 host 最小請求間隔（毫秒，須 ≥ 3000）                  | `3000`                                                       |
-| `SNAPSHOT_DIR`            | 原始快照目錄（相對路徑以 repo 根目錄為準）                 | `./var/snapshots`                                            |
-| `SLACK_WEBHOOK_URL`       | Slack 告警 webhook；留空則告警只寫 log                     | （空）                                                       |
-| `ALERT_MODE`              | `console`（只寫 log）或 `slack`；留空時依有無 webhook 決定 | （空）                                                       |
-| `ALERT_*`                 | 連續 0 筆門檻、同一告警節流分鐘數、缺漏率突增門檻          | `3` / `360` / `0.3`                                          |
-| `KKTIX_KEYWORDS`          | KKTIX 搜尋關鍵字（逗號分隔）                               | 動漫,動畫,聲優,同人,cosplay                                  |
-| `KKTIX_MIN_PRICE_MAX`     | KKTIX 規模門檻（場館不在字典時的票價上限下限）             | `1000`                                                       |
-| `DEDUP_*`                 | 去重灰色區間下限（pg_trgm）、開始日期容許差距（天）        | `0.45` / `1`                                                 |
-| `SNAPSHOT_RETENTION_DAYS` | 快照保留天數（≤ 30）                                       | `30`                                                         |
-| `CRON_*`                  | 排程（每日擷取、每週擷取、清理）                           | `0 4 * * *` / `0 5 * * 1` / `30 3 * * *`                     |
-| `ADMIN_BASIC_AUTH`        | `/admin` 後台 Basic Auth（`user:password`）                | `admin:change-me`                                            |
-| `TZ`                      | 時區，固定為台灣                                           | `Asia/Taipei`                                                |
-| `LOG_LEVEL`               | pino log 等級                                              | `info`                                                       |
+| 變數                      | 說明                                                             | 預設                                                         |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| `POSTGRES_PORT`           | Docker Postgres 映射到 host 的埠（避開本機既有的 5432）          | `5433`                                                       |
+| `DATABASE_URL`            | 開發用 DB 連線字串                                               | `postgres://aeh:aeh@localhost:5433/anime_event_hub`          |
+| `DATABASE_URL_TEST`       | 整合測試用 DB                                                    | `postgres://aeh:aeh@localhost:5433/anime_event_hub_test`     |
+| `CRAWL_USER_AGENT`        | 擷取器 UA，需標示專案名稱與聯絡方式                              | `AnimeEventHubTW-Bot/0.1 (+https://example.invalid/contact)` |
+| `CRAWL_MIN_INTERVAL_MS`   | 同一 host 最小請求間隔（毫秒，須 ≥ 3000）                        | `3000`                                                       |
+| `SNAPSHOT_DIR`            | 原始快照目錄（相對路徑以 repo 根目錄為準）                       | `./var/snapshots`                                            |
+| `SLACK_WEBHOOK_URL`       | Slack 告警 webhook；留空則告警只寫 log                           | （空）                                                       |
+| `ALERT_MODE`              | `console`（只寫 log）或 `slack`；留空時依有無 webhook 決定       | （空）                                                       |
+| `ALERT_*`                 | 連續 0 筆門檻、同一告警節流分鐘數、缺漏率突增門檻                | `3` / `360` / `0.3`                                          |
+| `KKTIX_KEYWORDS`          | KKTIX 搜尋關鍵字（逗號分隔）                                     | 動漫,動畫,聲優,同人,cosplay                                  |
+| `KKTIX_TAG_PASSES`        | KKTIX 規模門檻：場館不在字典時，命中作品/聲優/歌手標籤也算達門檻 | `true`                                                       |
+| `KKTIX_MIN_PRICE_MAX`     | KKTIX 規模門檻（場館不在字典時的票價上限下限）                   | `1000`                                                       |
+| `DEDUP_*`                 | 去重灰色區間下限（pg_trgm）、開始日期容許差距（天）              | `0.45` / `1`                                                 |
+| `SNAPSHOT_RETENTION_DAYS` | 快照保留天數（≤ 30）                                             | `30`                                                         |
+| `CRON_*`                  | 排程（每日擷取、每週擷取、清理）                                 | `0 4 * * *` / `0 5 * * 1` / `30 3 * * *`                     |
+| `ADMIN_BASIC_AUTH`        | `/admin` 後台 Basic Auth（`user:password`）                      | `admin:change-me`                                            |
+| `TZ`                      | 時區，固定為台灣                                                 | `Asia/Taipei`                                                |
+| `LOG_LEVEL`               | pino log 等級                                                    | `info`                                                       |
 
 > `.env` 已列入 `.gitignore`，Slack webhook 等機密只放在這裡。
 
@@ -151,7 +152,8 @@ pnpm --filter @aeh/worker start           # 啟動排程（每日/每週擷取�
 - **待審列表**：依狀態、審核原因、來源、標題關鍵字篩選
 - **單筆編輯**：補齊日期/場館/類型/票價；**修改過的欄位寫入 `locked_fields`**，之後重新擷取不會覆寫（來源變動時標 `source_changed` 待審）
 - **發布 / 隱藏 / 取消 / 退回待審**；必要欄位不齊或有審核原因時無法發布
-- **疑似重複**：列出相似活動，一鍵合併（來源連結與標籤一併搬移）
+- **疑似重複**：列出相似活動，一鍵合併（來源連結與標籤一併搬移）；被誤合併的來源可「拆分」成獨立活動
+- **人工設定的狀態**（退回待審、隱藏等）會鎖定，之後的擷取不會自動改回或自動發布
 - **字典快捷操作**：新增標籤/場館別名、新增場館、對待審資料重新標籤
 - 每個操作都寫入 `audit_log`
 
@@ -183,6 +185,12 @@ pnpm format:check   # Prettier
 pnpm lint           # ESLint（含「純函式套件不得 import db/http」的相依方向檢查）
 pnpm typecheck      # 各 workspace tsc --noEmit
 pnpm test           # 各 workspace vitest run（@aeh/db 整合測試需要 Docker DB）
+```
+
+解析套件的測試覆蓋率（normalize / tagger / dedup，門檻 80%）：
+
+```bash
+pnpm coverage
 ```
 
 全新 clone 的最低驗證流程（tech-spec T0 DoD）：

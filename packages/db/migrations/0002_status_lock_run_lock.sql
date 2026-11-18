@@ -1,0 +1,2 @@
+ALTER TABLE "event" ADD COLUMN "status_locked" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "crawl_run_one_running_uq" ON "crawl_run" USING btree ("source_id") WHERE "crawl_run"."status" = 'running' AND NOT "crawl_run"."dry_run";

@@ -9,7 +9,10 @@ const base: RawEventCandidate = {
   url: 'https://example.kktix.cc/events/1',
   title: '某某 演唱會',
 };
-const run = (c: Partial<RawEventCandidate>, scale?: { kktixMinPriceMax: number | null }) =>
+const run = (
+  c: Partial<RawEventCandidate>,
+  scale?: { kktixMinPriceMax: number | null; kktixTagPasses: boolean },
+) =>
   normalizeCandidate(
     { ...base, ...c },
     { venues: venueResolver, tagger, fetchedOn: '2026-11-18', ...(scale ? { scale } : {}) },
@@ -28,6 +31,31 @@ describe('必要欄位驗證（§4.2 / C4）', () => {
     expect(r.event.reviewReasons).toEqual(['ambiguous_date']);
     expect(r.notes.some((n) => n.includes('不連續'))).toBe(true);
     expect(r.status).toBe('pending_review');
+  });
+
+  it('海外的線上活動 → outside_taiwan（H2 / C6）', () => {
+    const r = run({
+      title: '某聲優 線上見面會',
+      dateText: '2026/12/20 19:00',
+      venueText: '東京 オンライン配信',
+    });
+    expect(r.status).toBe('pending_review');
+    expect(r.event.reviewReasons).toContain('outside_taiwan');
+  });
+
+  it('無法確認台灣主辦/售票的來源，線上活動進待審（C6）', () => {
+    const r = normalizeCandidate(
+      {
+        ...base,
+        sourceId: 'mightymedia',
+        title: '某作品 線上見面會',
+        dateText: '2026/12/20 19:00',
+        isOnline: true,
+      },
+      { venues: venueResolver, tagger, fetchedOn: '2026-11-18' },
+    );
+    expect(r.event.reviewReasons).toEqual(['outside_taiwan']);
+    expect(r.notes.some((n) => n.includes('C6'))).toBe(true);
   });
 
   it('缺場館且非線上 → missing_venue；線上 → 不需場館', () => {
@@ -49,7 +77,16 @@ describe('必要欄位驗證（§4.2 / C4）', () => {
   it('KKTIX 規模門檻：未知場館但票價達門檻 → 不標；門檻可設定', () => {
     const c = { dateText: '2026/12/20', venueText: '某 Live House 台北', priceText: 'NT$1,800' };
     expect(run(c).event.reviewReasons).toEqual(['unknown_venue']);
-    expect(run(c, { kktixMinPriceMax: 2000 }).event.reviewReasons).toEqual([
+    expect(run(c, { kktixMinPriceMax: 2000, kktixTagPasses: true }).event.reviewReasons).toEqual([
+      'unknown_venue',
+      'below_scale_threshold',
+    ]);
+  });
+
+  it('KKTIX 規模門檻：未知場館但命中作品/聲優/歌手標籤 → 不標（M5）；可關閉', () => {
+    const c = { title: '孤獨搖滾 演唱會', dateText: '2026/12/20', venueText: '某 Live House 台北' };
+    expect(run(c).event.reviewReasons).toEqual(['unknown_venue']);
+    expect(run(c, { kktixMinPriceMax: null, kktixTagPasses: false }).event.reviewReasons).toEqual([
       'unknown_venue',
       'below_scale_threshold',
     ]);

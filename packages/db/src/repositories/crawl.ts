@@ -12,16 +12,50 @@ export async function getSource(db: DbOrTx, id: SourceId) {
   return row ?? null;
 }
 
+export class CrawlInProgressError extends Error {
+  override name = 'CrawlInProgressError';
+  constructor(readonly sourceId: SourceId) {
+    super(`來源 ${sourceId} 已有執行中的擷取（排程或另一個 CLI），本次略過`);
+  }
+}
+
+/** 執行中超過此時間的 run 視為中斷殘留（process 當掉），標為失敗以釋放鎖 */
+export const STALE_RUN_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * 建立 crawl_run 並取得該來源的執行鎖（partial unique index crawl_run_one_running_uq，C11）。
+ * 已有執行中的 run → CrawlInProgressError。
+ */
 export async function startCrawlRun(
   db: DbOrTx,
   sourceId: SourceId,
   dryRun: boolean,
+  now: Date = new Date(),
 ): Promise<number> {
-  const [row] = await db
-    .insert(crawlRun)
-    .values({ sourceId, dryRun })
-    .returning({ id: crawlRun.id });
-  return row!.id;
+  if (!dryRun) {
+    await db
+      .update(crawlRun)
+      .set({ status: 'failed', finishedAt: now, error: '執行中斷（逾時未結束，視為殘留）' })
+      .where(
+        and(
+          eq(crawlRun.sourceId, sourceId),
+          eq(crawlRun.status, 'running'),
+          lt(crawlRun.startedAt, new Date(now.getTime() - STALE_RUN_MS)),
+        ),
+      );
+  }
+  try {
+    const [row] = await db
+      .insert(crawlRun)
+      .values({ sourceId, dryRun })
+      .returning({ id: crawlRun.id });
+    return row!.id;
+  } catch (err) {
+    const cause = (err as { cause?: { constraint_name?: string } }).cause;
+    if (cause?.constraint_name === 'crawl_run_one_running_uq')
+      throw new CrawlInProgressError(sourceId);
+    throw err;
+  }
 }
 
 export interface CrawlCounters {

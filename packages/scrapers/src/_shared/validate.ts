@@ -29,11 +29,29 @@ import {
 import type { TagHit, TagRecord, Tagger } from '@aeh/tagger';
 
 export interface ScaleThresholds {
-  /** KKTIX：場館不在字典時，票價上限需 ≥ 此值才不標 below_scale_threshold；null = 不看票價 */
+  /** KKTIX：場館不在字典時，票價上限需 ≥ 此值才算達門檻；null = 不看票價 */
   kktixMinPriceMax: number | null;
+  /**
+   * KKTIX：場館不在字典時，命中作品／聲優／歌手標籤即算達門檻。
+   * KKTIX 的 Atom feed 沒有票價，只靠票價條件會讓字典外場館一律進待審。
+   */
+  kktixTagPasses: boolean;
 }
 
-export const DEFAULT_SCALE_THRESHOLDS: ScaleThresholds = { kktixMinPriceMax: 1000 };
+export const DEFAULT_SCALE_THRESHOLDS: ScaleThresholds = {
+  kktixMinPriceMax: 1000,
+  kktixTagPasses: true,
+};
+
+/**
+ * 可確認「由台灣主辦或售票」的來源（C6）：台灣售票平台與台灣主辦單位官網。
+ * 其它來源（代理商新聞）的線上活動無法確認，一律進待審。
+ */
+export const ONLINE_TRUSTED_SOURCES: readonly RawEventCandidate['sourceId'][] = [
+  'kktix',
+  'cwt',
+  'ff',
+];
 
 export interface NormalizeContext<V extends VenueRecord & { id: number }, T extends TagRecord> {
   venues: VenueResolver<V>;
@@ -157,12 +175,19 @@ export function normalizeCandidate<V extends VenueRecord & { id: number }, T ext
   const tagged = ctx.tagger.tag({ title: c.title, sourceId: c.sourceId, typeHint: c.typeHint });
   reasons.push(...tagged.reviewReasons);
 
+  // ── 線上活動需台灣主辦/售票（C6） ──
+  if (isOnline && !ONLINE_TRUSTED_SOURCES.includes(c.sourceId)) {
+    reasons.push('outside_taiwan');
+    notes.push('線上活動：此來源無法確認由台灣主辦或售票（C6），請人工確認');
+  }
+
   // ── 規模門檻（KKTIX，PoC 後校正，R15） ──
   const scale = ctx.scale ?? DEFAULT_SCALE_THRESHOLDS;
   if (c.sourceId === 'kktix' && venue.kind !== 'matched' && !isOnline) {
-    const bigEnough =
+    const byPrice =
       scale.kktixMinPriceMax !== null && priceMax !== null && priceMax >= scale.kktixMinPriceMax;
-    if (!bigEnough) reasons.push('below_scale_threshold');
+    const byTag = scale.kktixTagPasses && tagged.tags.some((t) => t.tag.kind !== 'agency');
+    if (!byPrice && !byTag) reasons.push('below_scale_threshold');
   }
 
   const event = NormalizedEventSchema.parse({

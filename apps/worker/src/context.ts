@@ -9,7 +9,7 @@ import type { PipelineConfig, PipelineDeps } from './pipeline';
 
 export function pipelineConfig(env: Env, overrides: Partial<PipelineConfig> = {}): PipelineConfig {
   return {
-    scale: { kktixMinPriceMax: env.KKTIX_MIN_PRICE_MAX },
+    scale: { kktixMinPriceMax: env.KKTIX_MIN_PRICE_MAX, kktixTagPasses: env.KKTIX_TAG_PASSES },
     dedup: { possibleMin: env.DEDUP_POSSIBLE_MIN, dateWindowDays: env.DEDUP_DATE_WINDOW_DAYS },
     allowUnverified: false,
     emptyRunThreshold: env.ALERT_EMPTY_RUN_THRESHOLD,

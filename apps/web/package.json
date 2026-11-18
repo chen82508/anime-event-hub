@@ -15,6 +15,7 @@
     "@aeh/db": "workspace:*",
     "@aeh/dedup": "workspace:*",
     "@aeh/normalize": "workspace:*",
+    "@aeh/scrapers": "workspace:*",
     "@aeh/tagger": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

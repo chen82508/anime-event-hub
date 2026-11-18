@@ -359,7 +359,7 @@ export async function applyAdminEdit(
       e: Pick<EventRow, 'titleNormalized' | 'startAt' | 'venueId' | 'isOnline'>,
     ) => string | null;
   },
-): Promise<{ changed: LockableField[] }> {
+): Promise<{ changed: LockableField[]; demoted: boolean; reviewReasons: ReviewReason[] }> {
   return db.transaction(async (tx) => {
     const [cur] = await tx.select().from(event).where(eq(event.id, input.id)).for('update');
     if (!cur) throw new Error(`活動不存在：${input.id}`);
@@ -381,13 +381,24 @@ export async function applyAdminEdit(
     const changed = LOCKABLE_FIELDS.filter(
       (f) => changes[f] !== undefined && !sameValue(changes[f], cur[f]),
     );
-    if (changed.length === 0) return { changed };
+    if (changed.length === 0) return { changed, demoted: false, reviewReasons: cur.reviewReasons };
 
     const patch: EventPatch = {};
     for (const f of changed) Object.assign(patch, { [f]: changes[f] });
     if (patch.title !== undefined) patch.titleNormalized = input.deriveTitleNormalized(patch.title);
     const merged = { ...cur, ...patch } as EventRow;
-    patch.reviewReasons = sortReasons(pruneResolvedReasons(cur.reviewReasons, merged));
+    // 移除已解決的原因；人工清空必要欄位時補上對應原因（不與既有的場館類原因重複）
+    const reasons = pruneResolvedReasons(cur.reviewReasons, merged);
+    const venueReasonExists = reasons.some((r) => r === 'unknown_venue' || r === 'outside_taiwan');
+    for (const r of requiredFieldReasons(merged)) {
+      if (r === 'missing_venue' && venueReasonExists) continue;
+      reasons.push(r);
+    }
+    if (merged.type === null) reasons.push('type_unresolved');
+    patch.reviewReasons = sortReasons(reasons);
+    // 已發布活動被改成不符合發布條件 → 自動退回待審（C4；否則會違反 DB CHECK 約束）
+    const demoted = cur.status === 'published' && patch.reviewReasons.length > 0;
+    if (demoted) patch.status = 'pending_review';
     patch.dedupKey = input.deriveDedupKey(merged);
     patch.lockedFields = [...new Set([...cur.lockedFields, ...changed])];
 
@@ -401,9 +412,10 @@ export async function applyAdminEdit(
         before: Object.fromEntries(changed.map((f) => [f, cur[f]])),
         after: Object.fromEntries(changed.map((f) => [f, patch[f]])),
         resolvedReasons: cur.reviewReasons.filter((r) => !patch.reviewReasons!.includes(r)),
+        ...(demoted ? { demotedTo: 'pending_review' } : {}),
       },
     });
-    return { changed };
+    return { changed, demoted, reviewReasons: patch.reviewReasons };
   });
 }
 
@@ -441,7 +453,7 @@ export async function publishEvent(
     if (blockers.length > 0) throw new PublishBlockedError([...new Set(blockers)]);
     await tx
       .update(event)
-      .set({ status: 'published', publishedAt: cur.publishedAt ?? new Date() })
+      .set({ status: 'published', publishedAt: cur.publishedAt ?? new Date(), statusLocked: false })
       .where(eq(event.id, input.id));
     await writeAudit(tx, {
       actor: input.actor,
@@ -453,20 +465,23 @@ export async function publishEvent(
   });
 }
 
-/** 隱藏 / 取消 / 退回待審。狀態也寫入 locked_fields 以外的欄位，管線不會改回 */
+/** 隱藏 / 取消 / 退回待審 / 結束。設定 status_locked，管線之後不會自動改變狀態（含自動發布） */
 export async function setEventStatus(
   db: Database,
   input: { id: number; actor: string; status: Exclude<EventStatus, 'published'> },
 ): Promise<void> {
   await db.transaction(async (tx) => {
     const [cur] = await tx
-      .select({ status: event.status })
+      .select({ status: event.status, statusLocked: event.statusLocked })
       .from(event)
       .where(eq(event.id, input.id))
       .for('update');
     if (!cur) throw new Error(`活動不存在：${input.id}`);
-    if (cur.status === input.status) return;
-    await tx.update(event).set({ status: input.status }).where(eq(event.id, input.id));
+    if (cur.status === input.status && cur.statusLocked) return;
+    await tx
+      .update(event)
+      .set({ status: input.status, statusLocked: true })
+      .where(eq(event.id, input.id));
     await writeAudit(tx, {
       actor: input.actor,
       action: `event.status`,
@@ -628,4 +643,76 @@ export async function primarySourceOf(db: DbOrTx, eventId: number): Promise<Sour
     .orderBy(desc(eventSource.isPrimary))
     .limit(1);
   return row?.sourceId ?? null;
+}
+
+/**
+ * 拆分（T10）：把活動中的某個來源拆成獨立的新活動（例如被誤合併的不同場次）。
+ * 新活動的欄位由呼叫端以該來源的 parsed 重新正規化後傳入，一律為待審、狀態鎖定。
+ */
+export async function splitEventSource(
+  db: Database,
+  input: {
+    eventId: number;
+    sourceItemId: number;
+    actor: string;
+    newEvent: { normalized: NormalizedEvent; dedupKey: string | null; notes: string[] };
+    tags: { tagId: number; origin: TagOrigin; matchedBy: string | null }[];
+  },
+): Promise<number> {
+  return db.transaction(async (tx) => {
+    const links = await tx
+      .select()
+      .from(eventSource)
+      .where(eq(eventSource.eventId, input.eventId))
+      .for('update');
+    const link = links.find((l) => l.sourceItemId === input.sourceItemId);
+    if (!link) throw new Error('此來源不屬於這個活動');
+    if (links.length < 2) throw new Error('活動只有一個來源，無法拆分');
+
+    const newId = await insertEvent(tx, {
+      normalized: input.newEvent.normalized,
+      status: 'pending_review',
+      dedupKey: input.newEvent.dedupKey,
+      notes: [...input.newEvent.notes, `由活動 #${input.eventId} 拆分`],
+    });
+    await tx.update(event).set({ statusLocked: true }).where(eq(event.id, newId));
+    await tx
+      .delete(eventSource)
+      .where(
+        and(
+          eq(eventSource.eventId, input.eventId),
+          eq(eventSource.sourceItemId, input.sourceItemId),
+        ),
+      );
+    await tx
+      .insert(eventSource)
+      .values({ eventId: newId, sourceItemId: input.sourceItemId, url: link.url, isPrimary: true });
+    await tx
+      .update(sourceItem)
+      .set({ eventId: newId })
+      .where(eq(sourceItem.id, input.sourceItemId));
+    if (link.isPrimary) {
+      const next = links
+        .filter((l) => l.sourceItemId !== input.sourceItemId)
+        .sort((a, b) => a.sourceItemId - b.sourceItemId)[0]!;
+      await tx
+        .update(eventSource)
+        .set({ isPrimary: true })
+        .where(
+          and(
+            eq(eventSource.eventId, input.eventId),
+            eq(eventSource.sourceItemId, next.sourceItemId),
+          ),
+        );
+    }
+    await addEventTags(tx, newId, input.tags);
+    await writeAudit(tx, {
+      actor: input.actor,
+      action: 'event.split',
+      entity: 'event',
+      entityId: input.eventId,
+      diff: { sourceItemId: input.sourceItemId, newEventId: newId },
+    });
+    return newId;
+  });
 }

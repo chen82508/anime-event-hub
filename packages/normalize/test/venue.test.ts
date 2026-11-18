@@ -105,6 +105,10 @@ describe('VenueResolver（使用 data/dictionaries/venues.yaml）', () => {
     [{ venueText: '線上直播（YouTube）' }, 'online'],
     [{ venueText: 'オンライン配信' }, 'online'],
     [{ isOnline: true }, 'online'],
+    // 海外的線上活動不收錄（C6）
+    [{ venueText: '東京 オンライン配信' }, 'outside_taiwan:東京'],
+    [{ venueText: '線上直播', addressText: '日本 東京都' }, 'outside_taiwan:日本'],
+    [{ venueText: '線上直播（台北攝影棚）' }, 'online'],
     // 海外（R12）
     [{ venueText: '東京ドーム' }, 'outside_taiwan:東京ドーム'],
     [{ venueText: '幕張メッセ' }, 'outside_taiwan:幕張'],

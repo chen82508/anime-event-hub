@@ -1,5 +1,16 @@
 import type { SourceId } from '@aeh/core';
-import { bigint, boolean, index, integer, jsonb, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  unique,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { createdAt, tstz, updatedAt } from './_helpers';
 import { crawlRunStatusEnum, crawlScheduleEnum, sourceKindEnum } from './enums';
 import { event } from './event';
@@ -40,7 +51,13 @@ export const crawlRun = pgTable(
     itemsMissingFields: integer('items_missing_fields').notNull().default(0),
     error: text('error'),
   },
-  (t) => [index('crawl_run_source_started_idx').on(t.sourceId, t.startedAt)],
+  (t) => [
+    index('crawl_run_source_started_idx').on(t.sourceId, t.startedAt),
+    // 同一來源同時只能有一個執行中的 run（排程與手動 CLI 互斥，C11）
+    uniqueIndex('crawl_run_one_running_uq')
+      .on(t.sourceId)
+      .where(sql`${t.status} = 'running' AND NOT ${t.dryRun}`),
+  ],
 );
 
 /**

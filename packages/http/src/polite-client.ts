@@ -1,7 +1,7 @@
 /**
  * PoliteClient：合規擷取用的 HTTP 用戶端（C9、tech-spec T5）。
  *
- * - robots.txt：每個 origin 讀一次並快取；禁止的路徑拒絕請求並記錄（RobotsDisallowedError）。
+ * - robots.txt：每個 origin 快取 24 小時（取得失敗時 1 小時）；禁止的路徑拒絕請求並記錄（RobotsDisallowedError）。
  *   robots.txt 回應 4xx → 視為全部允許；5xx / 連線失敗 → 視為全部禁止（RFC 9309）。
  * - 節流：同一 host 兩次請求間隔 ≥ minIntervalMs（不得低於 3000）；robots 的 Crawl-delay 較長時採用之。
  *   robots.txt、重試、轉址的每一次請求都計入。
@@ -59,6 +59,10 @@ export interface PoliteClientOptions {
   maxBytes?: number;
   /** 預設 5 */
   maxRedirects?: number;
+  /** robots.txt 快取效期（排程程序長期執行，需定期重讀），預設 24 小時 */
+  robotsTtlMs?: number;
+  /** robots.txt 取得失敗（視為全部禁止）時的快取效期，預設 1 小時，避免暫時故障讓來源停擺到重啟 */
+  robotsFailureTtlMs?: number;
   /** 登記 raw_snapshot（apps 層實作）；失敗會往上拋 */
   onSnapshot?: (record: SnapshotRecord) => void | Promise<void>;
   logger?: HttpLogger;
@@ -132,13 +136,19 @@ export class PoliteClient {
   private readonly timeoutMs: number;
   private readonly maxBytes: number;
   private readonly maxRedirects: number;
+  private readonly robotsTtlMs: number;
+  private readonly robotsFailureTtlMs: number;
   private readonly onSnapshot: PoliteClientOptions['onSnapshot'];
   private readonly logger: HttpLogger;
   private readonly fetchImpl: typeof globalThis.fetch;
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
 
-  private readonly robotsCache = new Map<string, Promise<RobotsTxt>>();
+  /** origin → robots.txt（expiresAt 在讀取完成後才設定；讀取中為 Infinity） */
+  private readonly robotsCache = new Map<
+    string,
+    { promise: Promise<RobotsTxt>; expiresAt: number }
+  >();
   /** origin → robots.txt 的 Crawl-delay（毫秒） */
   private readonly crawlDelay = new Map<string, number>();
   /** host → 上次請求時間 */
@@ -166,6 +176,8 @@ export class PoliteClient {
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.maxBytes = options.maxBytes ?? 10 * 1024 * 1024;
     this.maxRedirects = options.maxRedirects ?? 5;
+    this.robotsTtlMs = options.robotsTtlMs ?? 24 * 60 * 60 * 1000;
+    this.robotsFailureTtlMs = options.robotsFailureTtlMs ?? 60 * 60 * 1000;
     this.onSnapshot = options.onSnapshot;
     this.logger = options.logger ?? noopLogger;
     this.fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
@@ -269,15 +281,18 @@ export class PoliteClient {
 
   private robotsFor(url: URL): Promise<RobotsTxt> {
     const origin = url.origin;
-    let cached = this.robotsCache.get(origin);
-    if (!cached) {
-      cached = this.loadRobots(origin);
-      this.robotsCache.set(origin, cached);
-    }
-    return cached;
+    const cached = this.robotsCache.get(origin);
+    if (cached && this.now() < cached.expiresAt) return cached.promise;
+    const entry = { promise: Promise.resolve(ALLOW_ALL), expiresAt: Number.POSITIVE_INFINITY };
+    entry.promise = this.loadRobots(origin).then(({ robots, failed }) => {
+      entry.expiresAt = this.now() + (failed ? this.robotsFailureTtlMs : this.robotsTtlMs);
+      return robots;
+    });
+    this.robotsCache.set(origin, entry);
+    return entry.promise;
   }
 
-  private async loadRobots(origin: string): Promise<RobotsTxt> {
+  private async loadRobots(origin: string): Promise<{ robots: RobotsTxt; failed: boolean }> {
     const robotsUrl = new URL('/robots.txt', origin);
     try {
       // robots.txt 允許轉址（RFC 9309 §2.3.1.2），交給 fetch 處理
@@ -286,21 +301,23 @@ export class PoliteClient {
         const robots = parseRobotsTxt(decodeBody(res.bytes, res.headers.get('content-type')).text);
         const delay = crawlDelayMs(robots, this.userAgent);
         if (delay !== null) this.crawlDelay.set(origin, delay);
+        else this.crawlDelay.delete(origin);
         this.logger.debug({ origin, groups: robots.groups.length }, '已讀取 robots.txt');
-        return robots;
+        return { robots, failed: false };
       }
       if (res.status >= 400 && res.status < 500) {
         this.logger.info({ origin, status: res.status }, 'robots.txt 不存在，視為全部允許');
-        return ALLOW_ALL;
+        this.crawlDelay.delete(origin);
+        return { robots: ALLOW_ALL, failed: false };
       }
       this.logger.warn({ origin, status: res.status }, 'robots.txt 無法取得，視為全部禁止');
-      return DISALLOW_ALL;
+      return { robots: DISALLOW_ALL, failed: true };
     } catch (err) {
       this.logger.warn(
         { origin, err: (err as Error).message },
         'robots.txt 無法取得，視為全部禁止',
       );
-      return DISALLOW_ALL;
+      return { robots: DISALLOW_ALL, failed: true };
     }
   }
 

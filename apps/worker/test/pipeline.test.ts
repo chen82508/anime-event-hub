@@ -1,6 +1,7 @@
 import type { Scraper } from '@aeh/scrapers';
 import {
   applyAdminEdit,
+  setEventStatus,
   auditLog,
   crawlRun,
   event,
@@ -340,6 +341,79 @@ describe.skipIf(!WORKER_TEST_DB_URL)('管線整合測試（Docker PostgreSQL ＋
     const r = await dedupExisting(h.deps);
     expect(r.merged).toEqual([{ from: b!.id, into: a!.id }]);
     expect(await events()).toHaveLength(4);
+    await h.cleanupDir();
+  });
+
+  it('人工退回待審後，reparse 不會自動改回已發布（H1）', async () => {
+    const h = await makeDeps(handle, routes());
+    await runSource(h.deps, 'cwt', { kind: 'crawl', dryRun: false });
+    const target = (await events()).find((e) => e.title === '【CWT-74】(台北場)')!;
+    await setEventStatus(handle.db, { id: target.id, actor: 'tester', status: 'pending_review' });
+    h.deps.client = null;
+    await runSource(h.deps, 'cwt', { kind: 'reparse' });
+    const cur = (await handle.db.select().from(event).where(eq(event.id, target.id)))[0]!;
+    expect(cur).toMatchObject({ status: 'pending_review', statusLocked: true });
+    await h.cleanupDir();
+  });
+
+  it('詳細頁的回應也登記到 raw_snapshot（M2）', async () => {
+    const detail: Scraper = {
+      id: 'muse',
+      schedule: 'daily',
+      fixtureStatus: 'real',
+      listUrls: () => ['https://muse.test/news'],
+      parseList: () => [
+        {
+          externalId: 'd1',
+          url: 'https://muse.test/news/d1',
+          candidate: null,
+          detailUrl: 'https://muse.test/news/d1',
+        },
+      ],
+      parseDetail: (_body, url) => ({
+        sourceId: 'muse',
+        externalId: 'd1',
+        url,
+        title: '某作品 快閃店',
+        dateText: '2026/12/20',
+        venueText: '三創生活園區',
+      }),
+    };
+    const h = await makeDeps(handle, {
+      'https://muse.test/news': html('<html>list</html>'),
+      'https://muse.test/news/d1': html('<html>detail</html>'),
+    });
+    h.deps.scrapers = { ...h.deps.scrapers, muse: detail };
+    const r = await runSource(h.deps, 'muse', { kind: 'crawl', dryRun: false });
+    expect(r.items[0]?.action).toBe('created');
+    const snaps = await handle.db.select().from(rawSnapshot).orderBy(asc(rawSnapshot.id));
+    expect(snaps.map((x) => x.url)).toEqual([
+      'https://muse.test/news',
+      'https://muse.test/news/d1',
+    ]);
+    expect(snaps.every((x) => x.crawlRunId === r.crawlRunId)).toBe(true);
+    const [si] = await handle.db.select().from(sourceItem);
+    expect(si?.lastSnapshotId).toBe(snaps[1]?.id);
+    await h.cleanupDir();
+  });
+
+  it('同一來源同時只能有一個執行（M4）；逾時殘留的 run 會被釋放', async () => {
+    const h = await makeDeps(handle, routes());
+    await handle.db.insert(crawlRun).values({ sourceId: 'cwt', status: 'running' });
+    const r = await runSource(h.deps, 'cwt', { kind: 'crawl', dryRun: false });
+    expect(r).toMatchObject({ status: 'skipped' });
+    expect(r.error).toContain('執行中');
+    expect(h.alerts).toHaveLength(0);
+
+    // 7 小時前開始、從未結束 → 視為殘留，標失敗後可正常執行
+    await handle.db
+      .update(crawlRun)
+      .set({ startedAt: new Date(Date.now() - 7 * 3600_000) })
+      .where(eq(crawlRun.status, 'running'));
+    const r2 = await runSource(h.deps, 'cwt', { kind: 'crawl', dryRun: false });
+    expect(r2.status).toBe('succeeded');
+    const stale = await handle.db.select().from(crawlRun).where(eq(crawlRun.status, 'failed'));
+    expect(stale).toHaveLength(1);
     await h.cleanupDir();
   });
 });

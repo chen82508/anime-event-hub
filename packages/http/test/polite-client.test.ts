@@ -65,7 +65,11 @@ function harness(routes: Record<string, Route | Route[]>, opts: Partial<PoliteCl
     ...opts,
   });
   const pageCalls = (url: string) => calls.filter((c) => c.url === url);
-  return { client, calls, sleeps, logs, snapshots, pageCalls };
+  /** 推進假時鐘（模擬經過一段時間，不計入 sleeps） */
+  const sleepFor = async (ms: number) => {
+    clock += ms;
+  };
+  return { client, calls, sleeps, logs, snapshots, pageCalls, sleepFor };
 }
 
 const html = (body: string, init: ResponseInit = {}) =>
@@ -130,6 +134,42 @@ describe('PoliteClient：robots.txt', () => {
     await h.client.get('https://a.test/1', { sourceId: 'kktix' });
     await h.client.get('https://a.test/2', { sourceId: 'kktix' });
     expect(h.pageCalls('https://a.test/robots.txt')).toHaveLength(1);
+  });
+
+  it('robots.txt 快取到期後重讀，網站更新的規則會生效（M1）', async () => {
+    let body = 'User-agent: *\nAllow: /';
+    const h = harness({
+      'https://a.test/robots.txt': () => robots(body),
+      'https://a.test/x': html('ok'),
+    });
+    await h.client.get('https://a.test/x', { sourceId: 'kktix' });
+    body = 'User-agent: *\nDisallow: /x';
+    // 24 小時內仍用快取
+    await h.client.get('https://a.test/x', { sourceId: 'kktix' });
+    // 推進時鐘超過 24 小時（透過 sleep 推進假時鐘）
+    await h.sleepFor(24 * 60 * 60 * 1000 + 1);
+    await expect(h.client.get('https://a.test/x', { sourceId: 'kktix' })).rejects.toBeInstanceOf(
+      RobotsDisallowedError,
+    );
+    expect(h.pageCalls('https://a.test/robots.txt')).toHaveLength(2);
+  });
+
+  it('robots.txt 暫時故障 → 1 小時後重試，恢復後可繼續擷取（M1）', async () => {
+    let down = true;
+    const h = harness(
+      {
+        'https://a.test/robots.txt': () =>
+          down ? new Response('down', { status: 503 }) : robots(''),
+        'https://a.test/x': html('ok'),
+      },
+      { maxRetries: 0 },
+    );
+    await expect(h.client.get('https://a.test/x', { sourceId: 'kktix' })).rejects.toBeInstanceOf(
+      RobotsDisallowedError,
+    );
+    down = false;
+    await h.sleepFor(60 * 60 * 1000 + 1);
+    expect((await h.client.get('https://a.test/x', { sourceId: 'kktix' })).status).toBe(200);
   });
 
   it('robots.txt 404 → 全部允許', async () => {

@@ -54,6 +54,11 @@ export const event = pgTable(
     isFree: boolean('is_free').notNull().default(false),
     saleStartAt: tstz('sale_start_at'),
     status: eventStatusEnum('status').notNull().default('pending_review'),
+    /**
+     * 狀態由管理者手動設定（退回待審、隱藏、取消、結束）→ 管線不得自動改變狀態（C4）。
+     * 手動發布時解除（之後來源出現新的審核原因仍會退回待審）。
+     */
+    statusLocked: boolean('status_locked').notNull().default(false),
     reviewReasons: reviewReasonEnum('review_reasons')
       .array()
       .notNull()

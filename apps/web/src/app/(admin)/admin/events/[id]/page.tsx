@@ -20,6 +20,7 @@ import {
   resolveReasonsAction,
   saveEventAction,
   setStatusAction,
+  splitSourceAction,
 } from '../../actions';
 
 type Search = Record<string, string | string[] | undefined>;
@@ -70,6 +71,9 @@ export default async function EventDetailPage({
           </span>
         ))}
         {e.yearInferred && <span className="badge">年份為推論</span>}
+        {e.statusLocked && (
+          <span className="badge lock">🔒 狀態由人工設定（管線不會自動發布）</span>
+        )}
         {e.lockedFields.length > 0 && (
           <span className="badge lock">🔒 已鎖定：{e.lockedFields.join('、')}</span>
         )}
@@ -206,6 +210,15 @@ export default async function EventDetailPage({
                   <span className="muted">（external_id: {s.externalId}）</span>
                 </summary>
                 <pre>{JSON.stringify(s.parsed, null, 2)}</pre>
+                {sources.length > 1 && (
+                  <form action={splitSourceAction} className="row">
+                    <input type="hidden" name="id" value={e.id} />
+                    <input type="hidden" name="sourceItemId" value={s.sourceItemId} />
+                    <button type="submit" className="danger">
+                      拆分成獨立活動（不同場次被誤合併時）
+                    </button>
+                  </form>
+                )}
               </details>
             ))}
           </div>

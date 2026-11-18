@@ -5,7 +5,7 @@
  * - `planSourceUpdate`：同一來源項目內容變動時
  *   - 主要來源：未鎖定欄位以新值覆寫；鎖定欄位保留，若新值不同 → source_changed 待審
  *   - 非主要來源：只補 null 欄位
- *   - 審核原因依新欄位重算；已隱藏/取消/結束的活動維持原狀態
+ *   - 審核原因依新欄位重算；已隱藏/取消/結束、或狀態被人工鎖定的活動維持原狀態
  */
 import {
   LOCKABLE_FIELDS,
@@ -67,7 +67,12 @@ export interface SourceUpdatePlan {
 }
 
 export function planSourceUpdate(input: {
-  current: EventFields & { reviewReasons: ReviewReason[]; status: EventStatus };
+  current: EventFields & {
+    reviewReasons: ReviewReason[];
+    status: EventStatus;
+    /** 狀態由管理者手動設定（退回待審、隱藏…）→ 不自動改變狀態，也不自動發布（C4） */
+    statusLocked?: boolean;
+  };
   incoming: NormalizedEvent;
   locked: readonly LockableField[];
   isPrimary: boolean;
@@ -115,7 +120,7 @@ export function planSourceUpdate(input: {
   const reviewReasons = sortReasons(reasons);
 
   let status = current.status;
-  if (status === 'published' || status === 'pending_review') {
+  if (!current.statusLocked && (status === 'published' || status === 'pending_review')) {
     const publishable = isAutoPublishable({ ...incoming, ...merged, reviewReasons });
     status = publishable ? 'published' : 'pending_review';
   }

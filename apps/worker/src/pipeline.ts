@@ -16,6 +16,7 @@ import {
   type SourceId,
 } from '@aeh/core';
 import {
+  CrawlInProgressError,
   addEventTags,
   attachEventSource,
   finishCrawlRun,
@@ -48,7 +49,7 @@ import {
   type DedupThresholds,
   type EventFields,
 } from '@aeh/dedup';
-import { decodeBody, type PoliteClient, type SnapshotStore } from '@aeh/http';
+import { decodeBody, type FetchResult, type PoliteClient, type SnapshotStore } from '@aeh/http';
 import { VenueResolver, taipeiDateString } from '@aeh/normalize';
 import {
   DEFAULT_SCALE_THRESHOLDS,
@@ -123,6 +124,8 @@ export interface RunSummary {
 
 const ACTOR = 'pipeline';
 const DUPLICATE_NOTE_PREFIX = '疑似與活動 #';
+/** 與 @aeh/db splitEventSource 寫入的說明一致 */
+const SPLIT_NOTE_PREFIX = '由活動 #';
 
 /** key 排序後的 JSON（內容 hash 用，確保同內容同 hash） */
 export function stableStringify(v: unknown): string {
@@ -212,7 +215,25 @@ export async function runSource(
     };
   }
 
-  const crawlRunId = dryRun ? null : await startCrawlRun(deps.db, sourceId, false);
+  let crawlRunId: number | null = null;
+  if (!dryRun) {
+    try {
+      crawlRunId = await startCrawlRun(deps.db, sourceId, false);
+    } catch (err) {
+      if (err instanceof CrawlInProgressError) {
+        log.warn(err.message);
+        return {
+          sourceId,
+          crawlRunId: null,
+          status: 'skipped',
+          error: err.message,
+          counters,
+          items,
+        };
+      }
+      throw err;
+    }
+  }
   try {
     const pages =
       mode.kind === 'crawl'
@@ -243,6 +264,7 @@ export async function runSource(
           tagger,
           dryRun,
           force: mode.kind === 'reparse',
+          crawlRunId,
         });
         items.push(report);
         if (report.action === 'created' || report.action === 'possible_duplicate')
@@ -298,6 +320,26 @@ export async function runSources(
   return out;
 }
 
+/** 回應快照登記到 raw_snapshot（T5 DoD：所有回應都要登記）；dry-run 不寫 DB */
+async function registerSnapshot(
+  deps: PipelineDeps,
+  res: FetchResult,
+  dryRun: boolean,
+): Promise<number | null> {
+  if (dryRun) return null;
+  return insertSnapshot(deps.db, {
+    sourceId: res.snapshot.sourceId,
+    crawlRunId: res.snapshot.crawlRunId,
+    url: res.snapshot.url,
+    fetchedAt: res.snapshot.fetchedAt,
+    httpStatus: res.snapshot.httpStatus,
+    contentType: res.snapshot.contentType,
+    contentHash: res.snapshot.contentHash,
+    storagePath: res.snapshot.storagePath,
+    encoding: res.snapshot.encoding,
+  });
+}
+
 async function fetchPages(
   deps: PipelineDeps,
   scraper: Scraper,
@@ -308,19 +350,7 @@ async function fetchPages(
   const pages: Page[] = [];
   for (const url of scraper.listUrls()) {
     const res = await deps.client.get(url, { sourceId: scraper.id, crawlRunId });
-    const snapshotId = dryRun
-      ? null
-      : await insertSnapshot(deps.db, {
-          sourceId: res.snapshot.sourceId,
-          crawlRunId: res.snapshot.crawlRunId,
-          url: res.snapshot.url,
-          fetchedAt: res.snapshot.fetchedAt,
-          httpStatus: res.snapshot.httpStatus,
-          contentType: res.snapshot.contentType,
-          contentHash: res.snapshot.contentHash,
-          storagePath: res.snapshot.storagePath,
-          encoding: res.snapshot.encoding,
-        });
+    const snapshotId = await registerSnapshot(deps, res, dryRun);
     if (!res.ok) throw new Error(`HTTP ${res.status}：${res.finalUrl}`);
     pages.push({
       body: res.text,
@@ -369,10 +399,12 @@ interface ItemContext {
   dryRun: boolean;
   /** reparse：內容未變也重算（結果相同時不會產生變更） */
   force: boolean;
+  crawlRunId: number | null;
 }
 
 async function processItem(deps: PipelineDeps, ctx: ItemContext): Promise<ItemReport> {
   const { item, page } = ctx;
+  let snapshotId = page.snapshotId;
   let candidate: RawEventCandidate | null = item.candidate;
   let skipReason = item.skipReason ?? null;
 
@@ -380,8 +412,16 @@ async function processItem(deps: PipelineDeps, ctx: ItemContext): Promise<ItemRe
     if (!deps.client) {
       skipReason = 'reparse 不支援詳細頁（需重新擷取）';
     } else {
-      const res = await deps.client.get(item.detailUrl, { sourceId: ctx.scraper.id });
-      candidate = ctx.scraper.parseDetail(res.text, res.finalUrl, { fetchedOn: page.fetchedOn });
+      const res = await deps.client.get(item.detailUrl, {
+        sourceId: ctx.scraper.id,
+        crawlRunId: ctx.crawlRunId,
+      });
+      snapshotId = (await registerSnapshot(deps, res, ctx.dryRun)) ?? snapshotId;
+      if (!res.ok) {
+        skipReason = `詳細頁 HTTP ${res.status}`;
+      } else {
+        candidate = ctx.scraper.parseDetail(res.text, res.finalUrl, { fetchedOn: page.fetchedOn });
+      }
     }
   }
   if (!candidate && !skipReason) skipReason = '沒有可用的候選資料';
@@ -425,7 +465,7 @@ async function processItem(deps: PipelineDeps, ctx: ItemContext): Promise<ItemRe
       url: candidate?.url ?? item.url,
       contentHash: sha256(stableStringify(candidate ?? { skipReason, parseError })),
       parsed: candidate ?? { skipReason, parseError },
-      snapshotId: page.snapshotId,
+      snapshotId,
       skipReason: parseError ? `parse_error: ${parseError}` : skipReason,
     });
     if (!result) {
@@ -567,6 +607,7 @@ async function updateFromSource(
       ...eventFields(a.current),
       reviewReasons: a.current.reviewReasons,
       status: a.current.status,
+      statusLocked: a.current.statusLocked,
     },
     incoming: a.result.event,
     locked: a.current.lockedFields as LockableField[],
@@ -576,9 +617,12 @@ async function updateFromSource(
   const merged = { ...eventFields(a.current), ...plan.patch };
   const nextKey = dedupKey(merged);
   // 疑似重複的說明是建立時由去重產生的，不在解析結果中；原因未解除前保留
-  const dupNotes = plan.reviewReasons.includes('possible_duplicate')
-    ? a.current.reviewNotes.filter((n) => n.startsWith(DUPLICATE_NOTE_PREFIX))
-    : [];
+  // 不在解析結果中的說明（去重產生的疑似重複、後台拆分紀錄）重跑時保留
+  const dupNotes = a.current.reviewNotes.filter(
+    (n) =>
+      n.startsWith(SPLIT_NOTE_PREFIX) ||
+      (n.startsWith(DUPLICATE_NOTE_PREFIX) && plan.reviewReasons.includes('possible_duplicate')),
+  );
   const notes = isPrimary ? [...a.result.notes, ...dupNotes] : a.current.reviewNotes;
   const conflictNote =
     plan.lockedConflicts.length > 0

@@ -6,8 +6,8 @@
  *    - 命中 1 個 → matched
  *    - 命中多個不同場館 → ambiguous（一則公告多場館，R5，交給人工拆分）
  * 2. 未命中：
+ *    - 沒有任何台灣縣市、但出現海外地名 → outside_taiwan（R12；線上活動亦同，C6）
  *    - 有線上關鍵字（或擷取器已標示 isOnline）→ online
- *    - 沒有任何台灣縣市、但出現海外地名 → outside_taiwan（R12）
  *    - 其它 → unknown（附推得的縣市，供審核者參考）
  * 3. 完全沒有場館文字且非線上 → missing
  *
@@ -84,13 +84,14 @@ export class VenueResolver<V extends VenueRecord = VenueRecord> {
     }
     if (hits.size > 1) return { kind: 'ambiguous', venues: [...hits.values()].map((h) => h.venue) };
 
-    if (input.isOnline || ONLINE_RE.test(venueText)) return { kind: 'online' };
-
+    // 海外地名優先於線上判定：「東京 オンライン配信」是海外的線上活動，不收錄（C6）
     const cities = this.cities.findAll(all);
     if (cities.length === 0) {
       const place = findOverseasPlace(all);
       if (place) return { kind: 'outside_taiwan', place };
     }
+
+    if (input.isOnline || ONLINE_RE.test(venueText)) return { kind: 'online' };
     const city = cities.length === 1 ? (cities[0] as TaiwanCity) : null;
     return { kind: 'unknown', city, region: city ? CITY_REGION[city] : null };
   }

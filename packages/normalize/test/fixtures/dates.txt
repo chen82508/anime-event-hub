@@ -31,6 +31,8 @@
 3/14 | | 2027-03-14 *
 11/1 | | 2026-11-01 *
 10/31 | | ambiguous
+6/28 | | 2027-06-28 *
+7/15 | | ambiguous
 10/20 | | ambiguous
 11/16(六) | | ambiguous
 2/29 | | ambiguous

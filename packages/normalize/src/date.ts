@@ -24,7 +24,10 @@ export interface DateParseOptions {
    * 傳入公告發布日（`RawEventCandidate.publishedOn`）；沒有時才用擷取日。
    */
   referenceDate: string;
-  /** 推論年份後距基準日超過此天數 → ambiguous（R2「差距異常」）。預設 300 */
+  /**
+   * 推論年份後距基準日超過此天數 → ambiguous（R2「差距異常」）。預設 240（約 8 個月）：
+   * 公告日之後兩個多月才發的回顧文（如 11/18 發布「9/1 活動花絮」）不會被誤推成隔年。
+   */
   maxForwardDays?: number;
   /** 活動區間最長天數，超過 → ambiguous。預設 366 */
   maxSpanDays?: number;
@@ -56,6 +59,8 @@ export type DateParseResult =
   | { kind: 'ok'; value: ParsedEventDate }
   | { kind: 'ambiguous'; reason: string }
   | { kind: 'missing' };
+
+export const DEFAULT_MAX_FORWARD_DAYS = 240;
 
 // ── 公用工具 ──────────────────────────────────────────────
 
@@ -585,7 +590,7 @@ export function parseEventDate(
 ): DateParseResult {
   const ref = parseIsoDate(options.referenceDate);
   if (!ref) throw new Error(`referenceDate 必須是 YYYY-MM-DD：${options.referenceDate}`);
-  const maxForwardDays = options.maxForwardDays ?? 300;
+  const maxForwardDays = options.maxForwardDays ?? DEFAULT_MAX_FORWARD_DAYS;
   const maxSpanDays = options.maxSpanDays ?? 366;
 
   const text = preprocess(dateText ?? '');

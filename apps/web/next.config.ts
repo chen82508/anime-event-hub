@@ -8,7 +8,14 @@ if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const nextConfig: NextConfig = {
   // workspace 套件直接輸出 TS 原始碼，由 Next 轉譯
-  transpilePackages: ['@aeh/core', '@aeh/db', '@aeh/dedup', '@aeh/normalize', '@aeh/tagger'],
+  transpilePackages: [
+    '@aeh/core',
+    '@aeh/db',
+    '@aeh/dedup',
+    '@aeh/normalize',
+    '@aeh/scrapers',
+    '@aeh/tagger',
+  ],
   // DB driver 不打包，直接由 Node 載入
   serverExternalPackages: ['postgres'],
 };

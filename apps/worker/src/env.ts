@@ -46,6 +46,11 @@ const EnvSchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? 1000 : v.trim() === '' ? null : Number(v)))
     .pipe(z.number().int().nonnegative().nullable()),
+  /** KKTIX 規模門檻：場館不在字典時，命中作品/聲優/歌手標籤也算達門檻 */
+  KKTIX_TAG_PASSES: z
+    .enum(['true', 'false', ''])
+    .optional()
+    .transform((v) => v !== 'false'),
   DEDUP_POSSIBLE_MIN: z.coerce.number().min(0).max(1).default(0.45),
   DEDUP_DATE_WINDOW_DAYS: z.coerce.number().int().min(0).default(1),
   /** 原始快照保留天數（C9：≤ 30） */
