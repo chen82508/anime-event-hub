@@ -1,0 +1,182 @@
+# 場館字典（T3）。比對以 name + aliases 為準；region 由 city 推得（不在此重複填寫）。
+# - slug：穩定識別碼，seed 以此 upsert，勿任意更改
+# - address：僅填已確認者，其餘待 PoC 期間補齊
+# - 只收台灣場館；未命中字典且出現海外地名 → outside_taiwan（R12）
+# - 不收會指向多個場館的模糊別名（如「南港展覽館」「巨蛋」「華山」），寧可 unknown_venue 進待審
+
+# ── 台北市 ───────────────────────────────────────────────
+- slug: twtc-hall-1
+  name: 台北世界貿易中心 展覽一館
+  aliases: [台北世貿一館, 世貿一館, 世貿展覽一館, 台北世貿中心一館, TWTC Hall 1]
+  city: 台北市
+  address: 台北市信義區信義路五段5號
+
+- slug: nangang-exhibition-hall-1
+  name: 台北南港展覽館 1館
+  aliases: [南港展覽館1館, 南港展覽館一館, 南港展覽一館, 南港一館, TaiNEX 1]
+  city: 台北市
+  address: 台北市南港區經貿二路1號
+
+- slug: nangang-exhibition-hall-2
+  name: 台北南港展覽館 2館
+  aliases: [南港展覽館2館, 南港展覽館二館, 南港展覽二館, 南港二館, TaiNEX 2]
+  city: 台北市
+  address: 台北市南港區經貿二路2號
+
+- slug: expo-dome
+  name: 花博公園 爭艷館
+  aliases: [花博爭艷館, 爭艷館, 圓山花博爭艷館, Expo Dome]
+  city: 台北市
+  address: 台北市中山區玉門街1號
+
+- slug: ticc
+  name: 台北國際會議中心
+  aliases: [TICC]
+  city: 台北市
+  address: 台北市信義區信義路五段1號
+
+- slug: taipei-arena
+  name: 台北小巨蛋
+  aliases: [小巨蛋, 臺北小巨蛋, Taipei Arena]
+  city: 台北市
+  address: 台北市松山區南京東路四段2號
+
+- slug: taipei-music-center
+  name: 台北流行音樂中心
+  aliases: [北流, 北流表演廳, Taipei Music Center]
+  city: 台北市
+  address: 台北市南港區市民大道八段99號
+
+- slug: ntu-sports-center
+  name: 國立臺灣大學綜合體育館
+  aliases: [台大綜合體育館, 臺大綜合體育館, 台大體育館, 台灣大學綜合體育館]
+  city: 台北市
+  address: 台北市大安區羅斯福路四段1號
+
+- slug: huashan-1914
+  name: 華山1914文化創意產業園區
+  aliases: [華山1914, 華山文創園區, 華山藝文特區]
+  city: 台北市
+  address: 台北市中正區八德路一段1號
+
+- slug: legacy-taipei
+  name: Legacy Taipei 音樂展演空間
+  aliases: [Legacy Taipei, Legacy 台北]
+  city: 台北市
+  address: 台北市中正區八德路一段1號
+
+- slug: songshan-cultural-park
+  name: 松山文創園區
+  aliases: [松菸, 松山文化創意園區, 松菸文創園區]
+  city: 台北市
+  address: 台北市信義區光復南路133號
+
+- slug: syntrend
+  name: 三創生活園區
+  aliases: [三創, 三創生活, Syntrend]
+  city: 台北市
+  address: 台北市中正區市民大道三段2號
+
+- slug: cks-memorial-hall
+  name: 中正紀念堂
+  aliases: [中正紀念堂展覽廳]
+  city: 台北市
+  address: 台北市中正區中山南路21號
+
+- slug: sun-yat-sen-memorial-hall
+  name: 國立國父紀念館
+  aliases: [國父紀念館]
+  city: 台北市
+  address: 台北市信義區仁愛路四段505號
+
+- slug: clapper-studio
+  name: Clapper Studio
+  aliases: [Clapper Studio 台北]
+  city: 台北市
+
+- slug: legacy-max
+  name: Legacy Max
+  aliases: [Legacy MAX]
+  city: 台北市
+
+- slug: riverside-live-house
+  name: Riverside Live House
+  aliases: [河岸留言 Live House, Riverside 河岸留言]
+  city: 台北市
+
+- slug: the-wall-taipei
+  name: THE WALL 公館
+  aliases: [The Wall Live House, THE WALL]
+  city: 台北市
+
+# ── 新北市 ───────────────────────────────────────────────
+- slug: zepp-new-taipei
+  name: Zepp New Taipei
+  aliases: [Zepp 新北, ZeppNewTaipei]
+  city: 新北市
+  address: 新北市新莊區新北大道四段3號8樓
+
+- slug: xinzhuang-gymnasium
+  name: 新莊體育館
+  aliases: [新北市立新莊體育館]
+  city: 新北市
+
+- slug: linkou-arena
+  name: 林口體育館
+  aliases: [新北市立林口體育館]
+  city: 新北市
+
+# ── 桃園市 ───────────────────────────────────────────────
+- slug: taoyuan-arts-center
+  name: 桃園展演中心
+  aliases: [桃園展演中心展演廳]
+  city: 桃園市
+  address: 桃園市桃園區中正路1188號
+
+# ── 台中市 ───────────────────────────────────────────────
+- slug: taichung-intl-exhibition-center
+  name: 台中國際展覽館
+  aliases: [臺中國際展覽館, 台中國展]
+  city: 台中市
+
+- slug: taichung-wtc
+  name: 台中世界貿易中心
+  aliases: [台中世貿, 台中世貿中心, 臺中世貿]
+  city: 台中市
+  address: 台中市西屯區天保街60號
+
+- slug: legacy-taichung
+  name: Legacy Taichung 音樂展演空間
+  aliases: [Legacy Taichung, Legacy 台中]
+  city: 台中市
+
+# ── 台南市 ───────────────────────────────────────────────
+- slug: tainan-cultural-center
+  name: 台南文化中心
+  aliases: [臺南文化中心, 台南市立文化中心]
+  city: 台南市
+
+# ── 高雄市 ───────────────────────────────────────────────
+- slug: kaohsiung-exhibition-center
+  name: 高雄展覽館
+  aliases: [高展館, Kaohsiung Exhibition Center, KEC]
+  city: 高雄市
+  address: 高雄市前鎮區成功二路39號
+
+- slug: kaohsiung-arena
+  name: 高雄巨蛋
+  aliases: [高雄巨蛋體育館]
+  city: 高雄市
+  address: 高雄市左營區博愛二路757號
+
+- slug: kaohsiung-music-center
+  name: 高雄流行音樂中心
+  aliases: [高流, 高雄流行音樂中心海音館, 海音館]
+  city: 高雄市
+  address: 高雄市鹽埕區真愛路1號
+
+- slug: pier-2
+  name: 駁二藝術特區
+  aliases: [駁二, 駁二特區]
+  city: 高雄市
+  address: 高雄市鹽埕區大勇路1號

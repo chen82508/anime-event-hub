@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xml:lang="zh-TW" xmlns="http://www.w3.org/2005/Atom">
+  <id>tag:kktix.com,2005:/events</id>
+  <link rel="alternate" type="text/html" href="https://kktix.cc/events"/>
+  <link rel="self" type="application/atom+xml" href="https://kktix.com/events.atom?search=%E5%8B%95%E6%BC%AB"/>
+  <title>搜尋活動: 動漫 - KKTIX</title>
+  <updated>2026-11-18T12:37:40+08:00</updated>
+  <icon>http://kktix.com/favicon.ico</icon>
+  <logo>https://assets.kktix.io/assets/kktix-og-image-d905bcfb8e0f7debf8b0ac14e48255701310a8d54b62934339498d1c2a64f0a3.png</logo>
+  <entry>
+    <id>tag:kktix.com,2005:Event/127032</id>
+    <published>2026-10-29T12:00:00+08:00</published>
+    <updated>2026-10-29T12:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://superwings.kktix.cc/events/3657cb5f"/>
+    <title>【2027台南遠東百貨成功店Super wings室內主題互動交通小鎮】2026/10/29~2027/2/14整座百貨公司都是我的駕駛樂園～親子歡樂從這裡開始！</title>
+    <summary type="text">🚙奇妙體驗全台唯一台南耶誕新春假期最棒的室內主題駕駛互動樂園，來自韓國的人氣動畫Super Wings沈浸式場景角色駕駛互動任務遊戲！</summary>
+    <content type="html">時間：2026/10/29 12:00(+0800) ~ 2027/02/14 20:00(+0800)
+地點：台南遠東百貨成功店5F / 台南市東區前鋒路210號</content>
+    <author>
+      <name>super wings交通小鎮</name>
+      <uri>https://superwings.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/125581</id>
+    <published>2026-12-05T18:30:00+08:00</published>
+    <updated>2026-12-05T18:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://resonance-works.kktix.cc/events/datesayurikh"/>
+    <title>伊達小百合  Fan Meeting 2026 In Kaohsiung</title>
+    <summary type="text">《Love Live! Superstar!!》澀谷香音聲優、Liella! 成員伊達小百合，將於 12 月 5 日在高雄駁二正港小劇場舉辦粉絲見面會；同日也將參與駁二動漫祭，與粉絲相見，迎接年末活動</summary>
+    <content type="html">時間：2026/12/05 18:30(+0800)
+地點：高雄駁二正港小劇場 / 高雄市鼓山區麗興里蓬萊路99號蓬萊區B9倉庫駁二藝術特區</content>
+    <author>
+      <name>鳴音合創有限公司</name>
+      <uri>https://resonance-works.co/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/127258</id>
+    <published>2027-01-28T16:30:00+08:00</published>
+    <updated>2027-01-28T16:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://atc-twn.kktix.cc/events/013bbb73"/>
+    <title>ATC Special Stage 佐佐木李子 聲優見面會</title>
+    <summary type="text">節目資訊 * 活動日期： 2027.01.28（四） * 報到時間： 15:30 - 16:15（請至動漫節指定舞台排隊區報到） * 演出時間： 16:30 - 18:00 * 演出地點： 台北世貿一</summary>
+    <content type="html">時間：2027/01/28 16:30(+0800)
+地點：2027 台北國際動漫節 Ａ舞台 / 臺北市信義區西村里信義路五段 5 號</content>
+    <author>
+      <name>ATC Taiwan</name>
+      <uri>https://atc-twn.com/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/126653</id>
+    <published>2026-11-22T16:00:00+08:00</published>
+    <updated>2026-11-22T16:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://myacg.kktix.cc/events/oi9gw7e"/>
+    <title>NIJISANJI EN 2026－Uki Violeta 1v1專屬見面會</title>
+    <summary type="text">NIJISANJI EN 2026 - Uki Violeta 1v1專屬見面會 NIJISANJI EN 2026 – Uki Violeta 1-on-1 Meet &amp; Greet 讓 Starg</summary>
+    <content type="html">時間：2026/11/22 16:00(+0800)
+地點：買動漫台北店 / 台北市中正區許昌街42號4樓</content>
+    <author>
+      <name>買對動漫股份有限公司</name>
+      <uri>https://myacg.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/126649</id>
+    <published>2026-11-22T10:30:00+08:00</published>
+    <updated>2026-11-22T10:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://myacg.kktix.cc/events/oej9fhj4r"/>
+    <title>NIJISANJI EN 2026－Alban Knox 1v1專屬見面會</title>
+    <summary type="text">NIJISANJI EN 2026 - Alban Knox 1v1專屬見面會 NIJISANJI EN 2026 – Alban Knox 1-on-1 Meet &amp; Greet Alban Kno</summary>
+    <content type="html">時間：2026/11/22 10:30(+0800)
+地點：買動漫台北店 / 台北市中正區許昌街42號4樓</content>
+    <author>
+      <name>買對動漫股份有限公司</name>
+      <uri>https://myacg.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/126650</id>
+    <published>2026-11-22T13:30:00+08:00</published>
+    <updated>2026-11-22T13:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://myacg.kktix.cc/events/qj6df5is"/>
+    <title>NIJISANJI EN 2026－Sonny Brisko 1v1專屬見面會</title>
+    <summary type="text">NIJISANJI EN 2026 - Sonny Brisko 1v1專屬見面會 NIJISANJI EN 2026 – Sonny Brisko 1-on-1 Meet &amp; Greet Sonny</summary>
+    <content type="html">時間：2026/11/22 13:30(+0800)
+地點：買動漫台北店 / 台北市中正區許昌街42號4樓</content>
+    <author>
+      <name>買對動漫股份有限公司</name>
+      <uri>https://myacg.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/127213</id>
+    <published>2027-01-19T09:00:00+08:00</published>
+    <updated>2027-01-19T09:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://watermirror.kktix.cc/events/7e7f41e1"/>
+    <title>【東京】創意產業探索課程 2027｜動漫・音樂・聲優・遊戲 五天幕後體驗（可單日報名）</title>
+    <summary type="text">2027/1/19–1/23 東京五日，深入日本動漫、音樂、聲優與遊戲產業幕後！體驗動畫作畫、錄音室配音、AI音樂創作及聲優體驗，參訪遊戲音效公司，與旅日台灣業界前輩交流。可單日報名，全程中文專人輔導</summary>
+    <content type="html">時間：2027/01/19 09:00(+0800) ~ 2027/01/23 21:00(+0800)
+地點：日本東京都（各日集合地點於行前通知告知）</content>
+    <author>
+      <name>Water Mirror</name>
+      <uri>https://watermirrorinc.com/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/127139</id>
+    <published>2026-12-05T18:30:00+08:00</published>
+    <updated>2026-12-05T18:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://cohesionmusic.kktix.cc/events/continuingouryouth"/>
+    <title>Ring 誓約之聲18週年成人式 - 續。成年主張</title>
+    <summary type="text">視覺系&gt;ACG&gt;獨立樂團
+一艘航行十八年的船，還在繼續旅程
+
+致十八年來，每一個曾經與我們同行的人。
+續。成年主張。</summary>
+    <content type="html">時間：2026/12/05 18:30(+0800)~21:30
+地點：凝聚力展演空間 / 台北市松山區八德路三段106巷1號B1</content>
+    <author>
+      <name>造音現場、凝聚力音樂娛樂</name>
+      <uri>https://www.facebook.com/chmetw/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/126277</id>
+    <published>2026-11-29T13:30:00+08:00</published>
+    <updated>2026-11-29T13:30:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://comedyclub.kktix.cc/events/sketchfoodtruck"/>
+    <title>2026台北喜劇節：短劇快餐車</title>
+    <summary type="text">時間很寶貴，但社會很靠北。
+</summary>
+    <content type="html">時間：2026/11/29 13:30(+0800)
+地點：Comedy Plus 卡米地＋ / 北市中山區復興北路480號</content>
+    <author>
+      <name>卡米地 Live Comedy Club Taipei</name>
+      <uri>http://www.comedy.com.tw/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/125618</id>
+    <published>2026-12-20T18:00:00+08:00</published>
+    <updated>2026-12-20T18:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://jmgroup.kktix.cc/events/0875100c"/>
+    <title>乃紫 noa live in Taipei 2026</title>
+    <summary type="text">乃紫 noa live in Taipei 2026 2024 年，一首〈全方向美少女〉從 TikTok 一路唱進所有人的耳機，連續兩週拿下 TikTok Weekly Top 冠軍，社群總播放次數突</summary>
+    <content type="html">時間：2026/12/20 18:00(+0800)
+地點：Legacy Taipei / 台北市中正區八德路一段1號(華山1914文化創意產業園區中5A館)</content>
+    <author>
+      <name>極星國際娛樂股份有限公司</name>
+      <uri>https://jmgroup.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/125651</id>
+    <published>2026-12-05T14:00:00+08:00</published>
+    <updated>2026-12-05T14:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://kuroko.kktix.cc/events/marasy2026ks"/>
+    <title>幻想遊戲演奏會2026 in Kaohsiung</title>
+    <summary type="text">MUSEUM OF MARASY 2026 in Kaohsiung</summary>
+    <content type="html">時間：2026/12/05 14:00(+0800)
+地點：國立中山大學藝文中心 逸仙館 / 高雄市鼓山區蓮海路 70 號</content>
+    <author>
+      <name>黑子娛樂有限公司</name>
+      <uri>https://www.kuroko-entertainment.tw/</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/125964</id>
+    <published>2027-02-13T18:00:00+08:00</published>
+    <updated>2027-02-13T18:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://jmgroup.kktix.cc/events/335647cf"/>
+    <title>【GA站票、坐票】藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北</title>
+    <summary type="text">藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北站 日本動漫歌姬藍井艾露以陰影厚實又極具穿透力的高音著稱。2011年以《Fate/Zero》片尾曲〈MEMORIA</summary>
+    <content type="html">時間：2027/02/13 18:00(+0800)
+地點：Zepp New Taipei / 新北市新莊區新北大道四段3號8樓（位於宏匯廣場8樓）</content>
+    <author>
+      <name>極星國際娛樂股份有限公司</name>
+      <uri>https://jmgroup.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:Event/125962</id>
+    <published>2027-02-13T18:00:00+08:00</published>
+    <updated>2027-02-13T18:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://jmgroup.kktix.cc/events/1fe1c11c"/>
+    <title>【VIP站票】藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北</title>
+    <summary type="text">藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北站 日本動漫歌姬藍井艾露以陰影厚實又極具穿透力的高音著稱。2011年以《Fate/Zero》片尾曲〈MEMORIA</summary>
+    <content type="html">時間：2027/02/13 18:00(+0800)
+地點：Zepp New Taipei / 新北市新莊區新北大道四段3號8樓（位於宏匯廣場8樓）</content>
+    <author>
+      <name>極星國際娛樂股份有限公司</name>
+      <uri>https://jmgroup.kktix.cc</uri>
+    </author>
+  </entry>
+  <entry>
+    <id>tag:kktix.com,2005:CollectionEvent/125952</id>
+    <published>2027-02-13T18:00:00+08:00</published>
+    <updated>2027-02-13T18:00:00+08:00</updated>
+    <link rel="alternate" type="text/html" href="https://jmgroup.kktix.cc/events/2ccbe1ee"/>
+    <title>藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北</title>
+    <summary type="text">藍井艾露 EIR AOI LIVE TOUR 2026-2027〈UNBOUND〉台北站 日本動漫歌姬藍井艾露以陰影厚實又極具穿透力的高音著稱。2011年以《Fate/Zero》片尾曲〈MEMORIA</summary>
+    <content type="html">時間：2027/02/13 18:00(+0800)
+地點：Zepp New Taipei / 新北市新莊區新北大道四段3號8樓（位於宏匯廣場8樓）</content>
+    <author>
+      <name>極星國際娛樂股份有限公司</name>
+      <uri>https://jmgroup.kktix.cc</uri>
+    </author>
+  </entry>
+</feed>

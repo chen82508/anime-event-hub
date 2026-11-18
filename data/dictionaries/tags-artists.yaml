@@ -1,0 +1,37 @@
+# 歌手・團體標籤（T3；tag.kind = artist）。動漫歌手來台演出為主要收錄對象。
+# 短名（Ado、LiSA）由 tagger 以整詞邊界處理（R14）。
+kind: artist
+tags:
+  - slug: lisa
+    name: LiSA
+    aliases: []
+  - slug: aimer
+    name: Aimer
+    aliases: []
+  - slug: yoasobi
+    name: YOASOBI
+    aliases: []
+  - slug: ado
+    name: Ado
+    aliases: []
+  - slug: claris
+    name: ClariS
+    aliases: []
+  - slug: fripside
+    name: fripSide
+    aliases: []
+  - slug: eir-aoi
+    name: 藍井艾露
+    aliases: [藍井エイル, Eir Aoi]
+  - slug: konomi-suzuki
+    name: 鈴木木乃美
+    aliases: [鈴木このみ, Konomi Suzuki]
+  - slug: reona
+    name: ReoNa
+    aliases: []
+  - slug: kessoku-band
+    name: 結束バンド
+    aliases: [Kessoku Band, 結束Band]
+  - slug: mygo
+    name: MyGO!!!!!
+    aliases: []

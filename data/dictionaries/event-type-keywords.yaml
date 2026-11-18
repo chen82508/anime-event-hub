@@ -1,0 +1,56 @@
+# 活動類型關鍵字字典（T3/T7）。
+# 判定順序：來源推論（如 CWT/FF → doujin）→ 本字典 → type_unresolved 待審（C5）。
+# 一個標題命中多類型時，取 priority 最高者；比對前會做 NFKC 與大小寫正規化。
+# 規則：同一關鍵字只能屬於一種類型；不放「展」「LIVE」這類過短、易誤判的字。
+
+- type: expo
+  priority: 60
+  keywords: [動漫節, 漫畫博覽會, 漫博, 動漫展, 動漫博覽會, 電玩展]
+
+- type: doujin
+  priority: 50
+  keywords:
+    [同人誌販售會, 同人展, 同人誌即賣會, 開拓動漫祭, Fancy Frontier, Comic World Taiwan, Only場]
+
+- type: fan_meeting
+  priority: 40
+  keywords:
+    [見面會, Fan Meeting, Fanmeeting, 簽名會, 握手會, 粉絲見面, 座談會, 簽售會, トークショー]
+
+- type: concert
+  priority: 30
+  keywords:
+    [
+      演唱會,
+      音樂會,
+      交響音樂會,
+      LIVE TOUR,
+      Live in Taipei,
+      Concert,
+      コンサート,
+      ライブツアー,
+      管弦樂,
+      演奏會,
+    ]
+
+- type: popup_cafe
+  priority: 20
+  keywords:
+    [
+      快閃店,
+      快閃,
+      POP UP,
+      POP-UP,
+      POPUP,
+      期間限定店,
+      主題咖啡廳,
+      主題咖啡,
+      聯名咖啡,
+      主題餐廳,
+      コラボカフェ,
+      Collabo Cafe,
+    ]
+
+- type: exhibition
+  priority: 10
+  keywords: [特展, 原畫展, 展覽, 企劃展, 主題展, 巡迴展, 設定資料展, Exhibition]

@@ -21,6 +21,7 @@
     "@aeh/normalize": "workspace:*",
     "@aeh/scrapers": "workspace:*",
     "@aeh/tagger": "workspace:*",
+    "drizzle-orm": "catalog:",
     "node-cron": "catalog:",
     "pino": "catalog:",
     "zod": "catalog:"

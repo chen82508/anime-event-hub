@@ -1,0 +1,2 @@
+# 擷取 fixture 保存原始 bytes（可能是 Big5），不做換行或編碼轉換（tech-spec R10）
+**/fixtures/** -text

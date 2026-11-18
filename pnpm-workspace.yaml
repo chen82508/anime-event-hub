@@ -9,6 +9,7 @@ catalog:
   '@types/node': ^22.19.0
   tsx: ^4.23.15
   vitest: ^5.1.0
+  '@vitest/coverage-v8': ^5.1.0
   # runtime
   zod: ^4.6.7
   drizzle-orm: ^0.45.4

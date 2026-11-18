@@ -25,7 +25,8 @@
     "db:seed": "pnpm --filter @aeh/db run db:seed",
     "db:studio": "pnpm --filter @aeh/db run db:studio",
     "crawl": "pnpm --filter @aeh/worker run crawl",
-    "reparse": "pnpm --filter @aeh/worker run reparse"
+    "reparse": "pnpm --filter @aeh/worker run reparse",
+    "coverage": "pnpm --filter @aeh/normalize --filter @aeh/tagger --filter @aeh/dedup run coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
