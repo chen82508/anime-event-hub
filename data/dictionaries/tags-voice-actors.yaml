@@ -1,0 +1,57 @@
+# 聲優標籤（T3）。name 用台灣常見中文寫法；aliases 收日文原名與羅馬拼音。
+kind: voice_actor
+tags:
+  - slug: kana-hanazawa
+    name: 花澤香菜
+    aliases: [Kana Hanazawa]
+  - slug: hiroshi-kamiya
+    name: 神谷浩史
+    aliases: [Hiroshi Kamiya]
+  - slug: mamoru-miyano
+    name: 宮野真守
+    aliases: [Mamoru Miyano, MAMORU MIYANO]
+  - slug: yuki-kaji
+    name: 梶裕貴
+    aliases: [Yuki Kaji]
+  - slug: hiro-shimono
+    name: 下野紘
+    aliases: [Hiro Shimono]
+  - slug: natsuki-hanae
+    name: 花江夏樹
+    aliases: [Natsuki Hanae]
+  - slug: akari-kito
+    name: 鬼頭明里
+    aliases: [Akari Kito]
+  - slug: saori-hayami
+    name: 早見沙織
+    aliases: [Saori Hayami]
+  - slug: inori-minase
+    name: 水瀨祈
+    aliases: [水瀬いのり, 水瀨いのり, Inori Minase]
+  - slug: sumire-uesaka
+    name: 上坂堇
+    aliases: [上坂すみれ, Sumire Uesaka]
+  - slug: yui-ogura
+    name: 小倉唯
+    aliases: [Yui Ogura]
+  - slug: aoi-yuki
+    name: 悠木碧
+    aliases: [Aoi Yuki]
+  - slug: yui-horie
+    name: 堀江由衣
+    aliases: [Yui Horie]
+  - slug: yukari-tamura
+    name: 田村由香里
+    aliases: [田村ゆかり, Yukari Tamura]
+  - slug: maaya-uchida
+    name: 內田真禮
+    aliases: [内田真礼, Maaya Uchida]
+  - slug: sora-amamiya
+    name: 雨宮天
+    aliases: [Sora Amamiya]
+  - slug: rie-takahashi
+    name: 高橋李依
+    aliases: [Rie Takahashi]
+  - slug: nana-mizuki
+    name: 水樹奈奈
+    aliases: [水樹奈々, Nana Mizuki]

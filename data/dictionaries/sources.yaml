@@ -1,0 +1,49 @@
+# 擷取來源（tech-spec §5 source 表）。
+# - enabled 只在首次 seed 建立時套用，之後由營運者在 DB 切換（避免 seed 覆蓋營運決策）
+# - base_url 為 null 者，待 PoC 確認官網與 robots.txt 後補上（2026-11-18 已確認 kktix / cwt / ff / mightymedia）
+# - muse：www.e-muse.com.tw 於 2026-11-18 無 DNS A 記錄，擷取器為未驗證狀態（synthetic），pipeline 預設略過
+# - 拓元、ibon 暫緩（C10）；其它代理商待 PoC 後決定（D7）
+# - PoC（D6）先啟用 kktix / cwt / muse 三個代表性來源
+
+- id: kktix
+  name: KKTIX
+  kind: ticketing
+  base_url: 'https://kktix.com'
+  schedule: daily
+  enabled: true
+- id: cwt
+  name: Comic World Taiwan (CWT)
+  kind: doujin
+  base_url: 'https://www.comicworld.com.tw'
+  schedule: daily
+  enabled: true
+- id: muse
+  name: 木棉花 Muse
+  kind: agency
+  base_url: 'https://www.e-muse.com.tw'
+  schedule: daily
+  enabled: true
+- id: ff
+  name: 開拓動漫祭 Fancy Frontier
+  kind: doujin
+  base_url: 'https://www.f-2.com.tw'
+  schedule: daily
+  enabled: false
+- id: mightymedia
+  name: 曼迪傳播 Mighty Media
+  kind: agency
+  base_url: 'https://www.mightymedia.com.tw'
+  schedule: daily
+  enabled: false
+- id: tica
+  name: 台北國際動漫節
+  kind: expo
+  base_url: null
+  schedule: weekly
+  enabled: false
+- id: comic_exhibition
+  name: 漫畫博覽會
+  kind: expo
+  base_url: null
+  schedule: weekly
+  enabled: false

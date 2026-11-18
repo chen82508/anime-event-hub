@@ -274,6 +274,18 @@ importers:
       '@aeh/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@aeh/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@aeh/dedup':
+        specifier: workspace:*
+        version: link:../../packages/dedup
+      '@aeh/normalize':
+        specifier: workspace:*
+        version: link:../../packages/normalize
+      '@aeh/tagger':
+        specifier: workspace:*
+        version: link:../../packages/tagger
       next:
         specifier: 'catalog:'
         version: 16.4.6(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -283,6 +295,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -320,6 +335,9 @@ importers:
       '@aeh/tagger':
         specifier: workspace:*
         version: link:../../packages/tagger
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(postgres@4.1.1)
       node-cron:
         specifier: 'catalog:'
         version: 4.6.0
@@ -449,6 +467,9 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@22.20.5)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   packages/scrapers:
     dependencies:
@@ -477,6 +498,9 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@22.20.5)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   packages/tagger:
     dependencies:
@@ -496,6 +520,9 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@22.20.5)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
 packages:
 

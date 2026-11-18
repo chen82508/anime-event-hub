@@ -1,0 +1,88 @@
+# 作品標籤（T3）。name 用台灣通行譯名；aliases 收日文原名、英文名與常見簡稱。
+# 短別名（≤2 字，如 EVA）由 tagger 以整詞邊界處理（R14）；每季依熱門新番更新。
+kind: work
+tags:
+  - slug: bocchi-the-rock
+    name: 孤獨搖滾！
+    aliases: [孤獨搖滾, ぼっち・ざ・ろっく！, ぼっち・ざ・ろっく, Bocchi the Rock!, Bocchi the Rock]
+  - slug: frieren
+    name: 葬送的芙莉蓮
+    aliases: [葬送のフリーレン, Frieren, 芙莉蓮]
+  - slug: oshi-no-ko
+    name: 我推的孩子
+    aliases: ['【推しの子】', 推しの子, Oshi no Ko]
+  - slug: spy-family
+    name: SPY×FAMILY 間諜家家酒
+    aliases: [間諜家家酒, SPY×FAMILY, SPY FAMILY, スパイファミリー]
+  - slug: jujutsu-kaisen
+    name: 咒術迴戰
+    aliases: [呪術廻戦, Jujutsu Kaisen]
+  - slug: kimetsu-no-yaiba
+    name: 鬼滅之刃
+    aliases: [鬼滅の刃, Demon Slayer, 鬼滅]
+  - slug: attack-on-titan
+    name: 進擊的巨人
+    aliases: [進撃の巨人, Attack on Titan]
+  - slug: chainsaw-man
+    name: 鏈鋸人
+    aliases: [チェンソーマン, Chainsaw Man]
+  - slug: haikyu
+    name: 排球少年!!
+    aliases: [排球少年, ハイキュー!!, ハイキュー, Haikyu!!, HAIKYU!!]
+  - slug: blue-lock
+    name: 藍色監獄
+    aliases: [ブルーロック, BLUE LOCK]
+  - slug: dandadan
+    name: 膽大黨
+    aliases: [ダンダダン, DAN DA DAN, Dandadan]
+  - slug: detective-conan
+    name: 名偵探柯南
+    aliases: [名探偵コナン, Detective Conan, 柯南]
+  - slug: one-piece
+    name: 航海王
+    aliases: [ONE PIECE, ワンピース, 海賊王]
+  - slug: crayon-shinchan
+    name: 蠟筆小新
+    aliases: [クレヨンしんちゃん, Crayon Shin-chan]
+  - slug: doraemon
+    name: 哆啦A夢
+    aliases: [ドラえもん, Doraemon, 小叮噹]
+  - slug: pokemon
+    name: 寶可夢
+    aliases: [ポケモン, Pokémon, Pokemon, 精靈寶可夢]
+  - slug: evangelion
+    name: 新世紀福音戰士
+    aliases: [エヴァンゲリオン, Evangelion, 福音戰士, EVA]
+  - slug: gundam
+    name: 機動戰士鋼彈
+    aliases: [機動戦士ガンダム, ガンダム, GUNDAM, 鋼彈]
+  - slug: chiikawa
+    name: 吉伊卡哇
+    aliases: [ちいかわ, Chiikawa]
+  - slug: idolmaster
+    name: 偶像大師
+    aliases: [アイドルマスター, THE IDOLM@STER, IDOLM@STER, 偶像大師 灰姑娘女孩]
+  - slug: love-live
+    name: LoveLive!
+    aliases: [ラブライブ！, ラブライブ, Love Live!, LoveLive]
+  - slug: bang-dream
+    name: BanG Dream!
+    aliases: [バンドリ, BanG Dream]
+  - slug: uma-musume
+    name: 賽馬娘
+    aliases: [ウマ娘, Uma Musume, 賽馬娘 Pretty Derby]
+  - slug: blue-archive
+    name: 蔚藍檔案
+    aliases: [ブルーアーカイブ, Blue Archive, ブルアカ]
+  - slug: genshin-impact
+    name: 原神
+    aliases: [Genshin Impact]
+  - slug: delicious-in-dungeon
+    name: 迷宮飯
+    aliases: [ダンジョン飯, Delicious in Dungeon]
+  - slug: apothecary-diaries
+    name: 藥師少女的獨語
+    aliases: [薬屋のひとりごと, The Apothecary Diaries]
+  - slug: madoka-magica
+    name: 魔法少女小圓
+    aliases: [魔法少女まどか☆マギカ, まどマギ, Madoka Magica]

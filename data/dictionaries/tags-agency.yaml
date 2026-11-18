@@ -1,0 +1,30 @@
+# 代理商 / 出版社標籤（T3）。未命中字典者不自動建立新標籤（C5）。
+kind: agency
+tags:
+  - slug: muse
+    name: 木棉花
+    aliases: [Muse Communication, Muse木棉花, 木棉花國際]
+  - slug: mighty-media
+    name: 曼迪傳播
+    aliases: [Mighty Media, 曼迪]
+  - slug: medialink
+    name: 羚邦
+    aliases: [Medialink, 羚邦集團, Ani-One]
+  - slug: proware
+    name: 普威爾
+    aliases: [Proware Multimedia, 普威爾國際]
+  - slug: kadokawa-taiwan
+    name: 台灣角川
+    aliases: [臺灣角川, KADOKAWA Taiwan]
+  - slug: tong-li
+    name: 東立出版社
+    aliases: [東立]
+  - slug: sharp-point
+    name: 尖端出版
+    aliases: [尖端]
+  - slug: ching-win
+    name: 青文出版社
+    aliases: [青文]
+  - slug: qunyingshe
+    name: 群英社
+    aliases: []

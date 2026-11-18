@@ -70,7 +70,7 @@ anime-event-hub/
 │  └─ scrapers/          # 每來源一個子目錄，實作共同 Scraper 介面
 │     ├─ kktix/
 │     ├─ muse/
-│     ├─ medialink/      # 曼迪
+│     ├─ mightymedia/    # 曼迪傳播（Mighty Media；Medialink 為羚邦）
 │     ├─ cwt/
 │     ├─ ff/
 │     └─ ...

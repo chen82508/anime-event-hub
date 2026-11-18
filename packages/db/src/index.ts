@@ -1,4 +1,8 @@
 // @aeh/db — Drizzle schema、migrations、seed、repository
 // 只允許 apps/* 與 pipeline 編排層使用（tech-spec §3）。
-// TODO(T2): client.ts、repositories/{event,sourceItem,crawlRun,dictionary}.ts
 export * from './schema';
+export { createDb, type Database, type DbHandle } from './client';
+export { runMigrations } from './migrate';
+export * from './dictionaries';
+export { DEFAULT_DICTIONARY_DIR, MIGRATIONS_DIR } from './env';
+export * from './repositories';
