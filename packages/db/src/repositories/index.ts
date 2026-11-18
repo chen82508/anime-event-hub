@@ -5,3 +5,4 @@ export * from './dictionary';
 export * from './event';
 export * from './source-item';
 export * from './types';
+export * from './public-event';

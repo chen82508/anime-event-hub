@@ -8,6 +8,8 @@
 
 目前進度：**Phase 1 的 T0–T10 皆已實作**（core、db、字典、normalize、http、scrapers、tagger、dedup、worker、/admin）。擷取器：KKTIX、CWT、FF、曼迪以 2026-11-18 的真實快照為 fixture；**木棉花官網無法連線，擷取器為未驗證（synthetic）狀態，pipeline 預設略過**；tica／comic_exhibition 尚未實作（待 PoC 檢視官網）。
 
+**Phase 2（前台 Discovery）進行中**：列表／月曆、多條件篩選、活動詳情已實作；訂閱推播屬 Phase 3。
+
 ---
 
 ## 架構原則（Non-negotiables，見 tech-spec §1）
@@ -100,4 +102,5 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 - **robots.txt 快取**：24 小時（取得失敗 1 小時）後重讀，排程程序不必重啟就會套用網站的新規則。
 - **KKTIX 規模門檻**：場館不在字典時，票價達 `KKTIX_MIN_PRICE_MAX` 或命中作品/聲優/歌手標籤（`KKTIX_TAG_PASSES`）才算達門檻。
 - **後台編輯**：讓已發布活動不再符合發布條件時，自動退回待審並補上原因（不會撞 DB CHECK）。
+- **前台**（`apps/web/src/app/(public)`，Phase 2）：查詢在 `@aeh/db` 的 `repositories/public-event.ts`，只回傳 `published`（月曆可含 `ended`），不回傳審核原因／`parsed`。篩選狀態全部放在 URL（`lib/public/filters.ts` 純函式解析，無效值忽略）；群組內 OR、群組間 AND。「已開賣」只依 `sale_start_at` 判定，未提供者不猜測。詳情頁必附主要來源連結（C8）。`loading.tsx` 只放在 `(discovery)` 群組：放在詳情頁上層會讓 `notFound()` 回 200。CSS 以 `--s-` 變數、`.site` 範圍隔離 admin 樣式。
 - **測試覆蓋率**：`pnpm coverage`（normalize / tagger / dedup，門檻 80%）。
