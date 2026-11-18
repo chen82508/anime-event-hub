@@ -296,6 +296,96 @@ describe('planSourceUpdate（同一來源內容變動）', () => {
     expect(plan.status).toBe('published');
   });
 
+  it('重跑：不可信來源的線上活動維持 outside_taiwan 待審（C6，不因「已是線上」被當成已解決）', () => {
+    const online = fields({
+      venueId: null,
+      venueRaw: null,
+      isOnline: true,
+      city: null,
+      region: 'online',
+    });
+    const plan = planSourceUpdate({
+      current: { ...online, reviewReasons: ['outside_taiwan'], status: 'pending_review' },
+      incoming: normalized({ ...online, reviewReasons: ['outside_taiwan'] }),
+      locked: [],
+      isPrimary: true,
+      previous: online,
+    });
+    expect(plan.status).toBe('pending_review');
+    expect(plan.reviewReasons).toEqual(['outside_taiwan']);
+  });
+
+  it('重跑：結束早於開始的 ambiguous_date 維持待審（C4，開始時間存在不代表已解決）', () => {
+    const plan = planSourceUpdate({
+      current: { ...fields(), reviewReasons: ['ambiguous_date'], status: 'pending_review' },
+      incoming: normalized({ reviewReasons: ['ambiguous_date'] }),
+      locked: [],
+      isPrimary: true,
+      previous: fields(),
+    });
+    expect(plan.status).toBe('pending_review');
+    expect(plan.reviewReasons).toEqual(['ambiguous_date']);
+  });
+
+  it('非主要來源補欄位：與補上欄位無關的原因不會被解除', () => {
+    const online = fields({
+      venueId: null,
+      venueRaw: null,
+      isOnline: true,
+      city: null,
+      region: 'online',
+    });
+    const plan = planSourceUpdate({
+      current: {
+        ...online,
+        priceMin: null,
+        priceMax: null,
+        reviewReasons: ['outside_taiwan'],
+        status: 'pending_review',
+      },
+      incoming: normalized({ ...online, priceMin: 500, priceMax: 500 }),
+      locked: [],
+      isPrimary: false,
+    });
+    expect(plan.reviewReasons).toEqual(['outside_taiwan']);
+    expect(plan.status).toBe('pending_review');
+  });
+
+  it('人工確認後發布：來源相關欄位未變 → 重跑維持發布；來源改了場館欄位才重新套用原因', () => {
+    const online = fields({
+      venueId: null,
+      venueRaw: null,
+      isOnline: true,
+      city: null,
+      region: 'online',
+    });
+    const current = { ...online, reviewReasons: [], status: 'published' as const };
+    const same = planSourceUpdate({
+      current,
+      incoming: normalized({ ...online, reviewReasons: ['outside_taiwan'] }),
+      locked: [],
+      isPrimary: true,
+      previous: online,
+    });
+    expect(same.status).toBe('published');
+    expect(same.reviewReasons).toEqual([]);
+
+    const moved = planSourceUpdate({
+      current,
+      incoming: normalized({
+        ...online,
+        isOnline: false,
+        region: null,
+        reviewReasons: ['outside_taiwan'],
+      }),
+      locked: [],
+      isPrimary: true,
+      previous: online,
+    });
+    expect(moved.status).toBe('pending_review');
+    expect(moved.reviewReasons).toEqual(['outside_taiwan']);
+  });
+
   it('隱藏的活動維持隱藏；possible_duplicate 保留到人工解除', () => {
     const plan = planSourceUpdate({
       current: { ...fields(), reviewReasons: ['possible_duplicate'], status: 'hidden' },

@@ -112,10 +112,18 @@ describe('pruneResolvedReasons', () => {
     'possible_duplicate',
     'source_changed',
   ] as const;
+  const empty = {
+    startAt: null,
+    endAt: null,
+    venueId: null,
+    isOnline: false,
+    type: null,
+  } as const;
   it('欄位補齊後移除對應原因；與欄位無關者保留', () => {
     expect(
-      pruneResolvedReasons(all, {
+      pruneResolvedReasons(all, empty, {
         startAt: new Date(0),
+        endAt: null,
         venueId: 1,
         isOnline: false,
         type: 'concert',
@@ -123,9 +131,7 @@ describe('pruneResolvedReasons', () => {
     ).toEqual(['possible_duplicate', 'source_changed']);
   });
   it('仍缺的欄位保留原因', () => {
-    expect(
-      pruneResolvedReasons(all, { startAt: null, venueId: null, isOnline: true, type: null }),
-    ).toEqual([
+    expect(pruneResolvedReasons(all, empty, { ...empty, isOnline: true })).toEqual([
       'missing_date',
       'ambiguous_date',
       'type_unresolved',
@@ -133,5 +139,27 @@ describe('pruneResolvedReasons', () => {
       'possible_duplicate',
       'source_changed',
     ]);
+  });
+  it('相關欄位沒有變動 → 即使欄位看似齊全也保留原因（C4、C6）', () => {
+    const online = { ...empty, startAt: new Date(0), isOnline: true, type: 'other' as const };
+    expect(pruneResolvedReasons(['outside_taiwan'], online, online)).toEqual(['outside_taiwan']);
+    const endBeforeStart = {
+      ...empty,
+      startAt: new Date(1000),
+      venueId: 1,
+      type: 'other' as const,
+    };
+    expect(pruneResolvedReasons(['ambiguous_date'], endBeforeStart, endBeforeStart)).toEqual([
+      'ambiguous_date',
+    ]);
+  });
+  it('只有相關欄位有變才解除：改結束時間可解除 ambiguous_date，改類型不行', () => {
+    const before = { ...empty, startAt: new Date(1000), venueId: 1 };
+    expect(
+      pruneResolvedReasons(['ambiguous_date'], before, { ...before, endAt: new Date(2000) }),
+    ).toEqual([]);
+    expect(
+      pruneResolvedReasons(['ambiguous_date'], before, { ...before, type: 'concert' }),
+    ).toEqual(['ambiguous_date']);
   });
 });

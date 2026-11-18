@@ -82,7 +82,7 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 - **類型**：擷取器 `typeHint` → `SOURCE_DEFAULT_TYPE`（cwt → doujin、tica/comic_exhibition → expo；FF 同時有同人展與演唱會，由擷取器依區塊給 typeHint）→ 關鍵字（priority 高者勝，同分不同類 → `type_unresolved`）。場館名中的「展覽館」等不算關鍵字。
 - **標籤**：`SOURCE_AGENCY_TAG`（muse、mightymedia）為來源推論；命中結果的 `matchedBy` 寫入 `event_tag.matched_by`。
 - **PoliteClient**：`minIntervalMs` < 3000 或 `maxRetries` > 3 直接拋錯；robots.txt 4xx = 全允許、5xx/連線失敗 = 全禁止；轉址手動跟隨並逐跳檢查 robots。快照存原始 bytes 於 `<source>/<台灣日期>/<sha256>.<ext>`，DB 登記透過 `onSnapshot` 回呼由 apps 層處理（http 不依賴 db）。
-- **日期（續）**：`12月12 / 13日`、`12/5、6` 這類同月列舉、每天各自附時刻（取第一天開始／最後一天結束）、同一日期重複出現（視為單一日期）都已支援。
+- **日期（續）**：`12月12 / 13日`、`12/5、6` 這類同月列舉、每天各自附時刻（取第一天開始／最後一天結束）、同一日期重複出現（視為單一日期）都已支援。「上午／晚上／凌晨12點」→ `ambiguous`（中午或午夜無法判定）；英文 12am/12pm 照慣例解析。
 - **場館（續）**：先比對場館欄，未命中才看地址（KKTIX 地址常附「位於華山1914…」）。
 - **樣本測試**：日期／票價樣本放在 `packages/normalize/test/fixtures/{dates,prices}.txt`（`輸入 | 時間 | 預期`），PoC 遇到新格式就加一行。
 
@@ -91,7 +91,7 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 - **Scraper**（`packages/scrapers/src/<source>/`）：`listUrls()` ＋ 純函式 `parseList()`；`fixtureStatus: 'synthetic'` 表示來源結構未驗證，pipeline 預設略過（`--allow-unverified` 才執行）。每來源有 `README.md`（端點、robots 檢查日、external_id、已知例外）與真實 fixture。
 - **必要欄位驗證**：`normalizeCandidate()`（`scrapers/src/_shared/validate.ts`）把候選轉成 `NormalizedEvent` 並給 `review_reasons`；任一原因 → `pending_review`。KKTIX 規模門檻：場館不在字典且票價上限 < `KKTIX_MIN_PRICE_MAX` → `below_scale_threshold`。
 - **去重**（`@aeh/dedup` 純函式 ＋ `@aeh/db` 的 pg_trgm 查詢）：`dedup_key` = 正規化標題（去空白）｜台灣開始日｜場館 → 完全相同才自動合併；±`DEDUP_DATE_WINDOW_DAYS` 天、場館不衝突、相似度 ≥ `DEDUP_POSSIBLE_MIN` → `possible_duplicate`。TS 版 `trigramSimilarity()` 與 pg_trgm 結果一致（已對 DB 實測）。
-- **重新擷取的合併規則**（`planSourceUpdate`）：主要來源覆寫未鎖定欄位；非主要來源只補 null。鎖定欄位只有在「來源值相較**上次解析**有變」時才標 `source_changed`（人工值本來就和來源不同，不能每次都標）。審核原因依新欄位重算（`pruneResolvedReasons()`，core），順序固定為 `REVIEW_REASONS` 的順序（否則重跑會被誤判為變更）。
+- **重新擷取的合併規則**（`planSourceUpdate`）：主要來源覆寫未鎖定欄位；非主要來源只補 null。鎖定欄位只有在「來源值相較**上次解析**有變」時才標 `source_changed`（人工值本來就和來源不同，不能每次都標）。審核原因依新欄位重算（`pruneResolvedReasons(reasons, before, after)`，core）：原因只有在**相關欄位實際有變**且已滿足條件時才解除（欄位看似齊全不等於已解決，如不可信來源的線上活動、結束早於開始）；已發布活動若來源相關欄位與上次解析相同，不因規則調整而退回待審。順序固定為 `REVIEW_REASONS` 的順序（否則重跑會被誤判為變更）。
 - **Idempotent**：`source_item` 以內容 hash 判斷；`crawl` 內容未變就不處理，`reparse` 強制重算但結果相同時不產生任何寫入。整合測試涵蓋（`apps/worker/test/pipeline.test.ts`）。
 - **告警**（`apps/worker/src/alerts.ts`）：規則（失敗、連續 N 次 0 筆、缺漏率突增）是純函式 `evaluateRunAlerts()`；節流狀態存 DB `alert_state`（CLI 與排程是不同 process）。`ALERT_MODE=console` 只寫 log。
 - **後台**（`apps/web`）：`src/proxy.ts`（Next 16 的 middleware）做 Basic Auth，操作者名稱寫進 `x-admin-user` → `audit_log.actor`。Server Actions 在 `app/(admin)/admin/actions.ts`；欄位只有「實際有變」才寫入 `locked_fields`（表單的 23:59 存成 23:59:59，避免未改的表單被誤鎖）。發布前檢查必要欄位與審核原因，DB CHECK 約束是最後防線。
