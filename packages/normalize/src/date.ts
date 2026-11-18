@@ -392,7 +392,13 @@ function applyPeriod(h: number, period: string | undefined): number | null {
   return h;
 }
 
-function scanTimeTokens(s: string): TimeToken[] | 'invalid' {
+/**
+ * 「上午／早上／晚上／夜間／凌晨 12 點」在中文裡可能指中午或午夜（甚至前一晚），
+ * 無法唯一判定 → ambiguous（不猜測）。英文 12am / 12pm 為慣例寫法，照常解析；「中午12點」明確。
+ */
+const AMBIGUOUS_TWELVE_PERIODS = new Set(['上午', '早上', '晚上', '夜間', '凌晨']);
+
+function scanTimeTokens(s: string): TimeToken[] | 'invalid' | 'ambiguous_twelve' {
   const tokens: TimeToken[] = [];
   for (const m of s.matchAll(TIME_RE)) {
     const start = m.index;
@@ -404,6 +410,9 @@ function scanTimeTokens(s: string): TimeToken[] | 'invalid' {
       h = applyPeriod(Number(m[7]), m[8]);
       min = 0;
     } else {
+      if (Number(m[2]) === 12 && m[1] !== undefined && AMBIGUOUS_TWELVE_PERIODS.has(m[1])) {
+        return 'ambiguous_twelve';
+      }
       h = applyPeriod(Number(m[2]), m[1] ?? m[6]);
       min =
         m[3] !== undefined
@@ -434,6 +443,9 @@ const TIME_RANGE_GAP_RE = /^\s*(?:~|-|至|到)\s*$/u;
 function resolveTimes(s: string): TimeResolution {
   const scanned = scanTimeTokens(s);
   if (scanned === 'invalid') return { kind: 'ambiguous', reason: '時間格式不合法' };
+  if (scanned === 'ambiguous_twelve') {
+    return { kind: 'ambiguous', reason: '「上午／晚上／凌晨12點」無法判定是中午或午夜' };
+  }
   let tokens = scanned;
   if (tokens.length === 0) return { kind: 'ok', startTime: null, endTime: null };
 

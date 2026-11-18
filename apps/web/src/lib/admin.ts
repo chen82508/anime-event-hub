@@ -45,7 +45,7 @@ export async function retagPendingEvents(
         const merged = { ...ev, type: r.type.type };
         await updateEvent(tx, p.id, {
           type: r.type.type,
-          reviewReasons: pruneResolvedReasons(ev.reviewReasons, merged),
+          reviewReasons: pruneResolvedReasons(ev.reviewReasons, ev, merged),
         });
         typed++;
       }

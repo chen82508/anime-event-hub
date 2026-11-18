@@ -11,6 +11,7 @@ import {
   LOCKABLE_FIELDS,
   isAutoPublishable,
   pruneResolvedReasons,
+  reasonFieldsUnchanged,
   type EventStatus,
   type LockableField,
   type NormalizedEvent,
@@ -106,16 +107,28 @@ export function planSourceUpdate(input: {
   }
   const merged = { ...current, ...patch };
 
-  // 主要來源：以新解析的原因為準；非主要來源：沿用既有原因。兩者都保留人工才能解除的原因
-  const base = isPrimary
-    ? [
-        ...incoming.reviewReasons,
-        ...current.reviewReasons.filter(
-          (r) => r === 'possible_duplicate' || r === 'source_changed',
+  // 主要來源：以新解析的原因為準；非主要來源：沿用既有原因。兩者都保留人工才能解除的原因。
+  // 原因只在相關欄位「相較產生該原因時的欄位」有變才可能解除（新解析的原因對應 incoming，
+  // 只有被鎖定欄位蓋掉的部分會不同），避免重跑時把欄位看似齊全、實際未解決的原因吃掉（C4、C6）。
+  let reasons: ReviewReason[];
+  if (isPrimary) {
+    const fresh = pruneResolvedReasons(incoming.reviewReasons, incoming, merged).filter(
+      (r) =>
+        // 已發布（人工或先前自動發布）且來源相關欄位與上次解析相同 → 沿用既有判斷，
+        // 不因規則／門檻調整而反覆退回待審；來源欄位有變才重新套用原因
+        !(
+          current.status === 'published' &&
+          previous &&
+          reasonFieldsUnchanged(r, previous, incoming)
         ),
-      ]
-    : current.reviewReasons;
-  const reasons = pruneResolvedReasons(base, merged);
+    );
+    reasons = [
+      ...fresh,
+      ...current.reviewReasons.filter((r) => r === 'possible_duplicate' || r === 'source_changed'),
+    ];
+  } else {
+    reasons = pruneResolvedReasons(current.reviewReasons, current, merged);
+  }
   if (lockedConflicts.length > 0) reasons.push('source_changed');
   const reviewReasons = sortReasons(reasons);
 

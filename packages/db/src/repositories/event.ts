@@ -388,7 +388,7 @@ export async function applyAdminEdit(
     if (patch.title !== undefined) patch.titleNormalized = input.deriveTitleNormalized(patch.title);
     const merged = { ...cur, ...patch } as EventRow;
     // 移除已解決的原因；人工清空必要欄位時補上對應原因（不與既有的場館類原因重複）
-    const reasons = pruneResolvedReasons(cur.reviewReasons, merged);
+    const reasons = pruneResolvedReasons(cur.reviewReasons, cur, merged);
     const venueReasonExists = reasons.some((r) => r === 'unknown_venue' || r === 'outside_taiwan');
     for (const r of requiredFieldReasons(merged)) {
       if (r === 'missing_venue' && venueReasonExists) continue;
@@ -583,7 +583,7 @@ export async function mergeInto(tx: Tx, from: EventRow, into: EventRow): Promise
   }
   if (fill.venueId !== undefined) fill.venueRaw = from.venueRaw;
   const merged = { ...into, ...fill };
-  fill.reviewReasons = sortReasons(pruneResolvedReasons(into.reviewReasons, merged));
+  fill.reviewReasons = sortReasons(pruneResolvedReasons(into.reviewReasons, into, merged));
   fill.reviewNotes = [...new Set([...into.reviewNotes, ...from.reviewNotes])];
 
   await tx.update(eventSource).set({ isPrimary: false }).where(eq(eventSource.eventId, from.id));
