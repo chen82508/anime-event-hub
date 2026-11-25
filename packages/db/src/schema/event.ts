@@ -72,6 +72,11 @@ export const event = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     publishedAt: tstz('published_at'),
+    /**
+     * 「新活動上架」通知已處理的時間（Phase 3）。發布後由 worker 比對訂閱、產生通知後填入；
+     * 之後再被隱藏／重新發布也不會重複通知。
+     */
+    newEventNotifiedAt: tstz('new_event_notified_at'),
   },
   (t) => [
     index('event_title_normalized_trgm_idx').using('gin', t.titleNormalized.op('gin_trgm_ops')),

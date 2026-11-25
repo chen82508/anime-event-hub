@@ -1,8 +1,11 @@
 import {
   CRAWL_RUN_STATUSES,
   CRAWL_SCHEDULES,
+  DELIVERY_STATUSES,
   EVENT_STATUSES,
   EVENT_TYPES,
+  NOTIFICATION_KINDS,
+  NOTIFY_CHANNELS,
   REGIONS,
   REVIEW_REASONS,
   SOURCE_KINDS,
@@ -22,3 +25,6 @@ export const crawlScheduleEnum = pgEnum('crawl_schedule', CRAWL_SCHEDULES);
 export const crawlRunStatusEnum = pgEnum('crawl_run_status', CRAWL_RUN_STATUSES);
 export const tagKindEnum = pgEnum('tag_kind', TAG_KINDS);
 export const tagOriginEnum = pgEnum('tag_origin', TAG_ORIGINS);
+export const notificationKindEnum = pgEnum('notification_kind', NOTIFICATION_KINDS);
+export const notifyChannelEnum = pgEnum('notify_channel', NOTIFY_CHANNELS);
+export const deliveryStatusEnum = pgEnum('delivery_status', DELIVERY_STATUSES);

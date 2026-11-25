@@ -37,6 +37,8 @@ export interface PublicEventFilter {
   sale?: SaleFilter;
   /** 月曆檢視需要顯示本月已結束的活動 */
   includeEnded?: boolean;
+  /** 只取這些活動（「我的收藏」用）；空陣列 → 0 筆 */
+  ids?: readonly number[];
   /** 判定開賣狀態的基準時間（測試可注入） */
   now?: Date;
   limit?: number;
@@ -94,6 +96,7 @@ function buildWhere(f: PublicEventFilter): SQL | undefined {
     inArray(event.status, statuses),
     // published 必有 start_at（CHECK 約束）；ended 也保險加上
     sql`${event.startAt} is not null`,
+    f.ids ? (f.ids.length ? inArray(event.id, [...f.ids]) : sql`false`) : undefined,
     f.regions?.length ? inArray(event.region, [...f.regions]) : undefined,
     f.types?.length ? inArray(event.type, [...f.types]) : undefined,
     tagConds.length

@@ -5,7 +5,13 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /** 純函式套件：不得觸碰 DB 與網路（tech-spec §3） */
-const PURE_PACKAGES = ['packages/core', 'packages/normalize', 'packages/tagger', 'packages/dedup'];
+const PURE_PACKAGES = [
+  'packages/core',
+  'packages/normalize',
+  'packages/tagger',
+  'packages/dedup',
+  'packages/notify',
+];
 
 export default tseslint.config(
   {
@@ -33,6 +39,11 @@ export default tseslint.config(
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
     },
+  },
+  {
+    // Web Push service worker（瀏覽器端，非 Node）
+    files: ['apps/web/public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
     files: PURE_PACKAGES.map((p) => `${p}/src/**/*.ts`),

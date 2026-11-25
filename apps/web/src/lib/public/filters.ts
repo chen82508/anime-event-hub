@@ -8,6 +8,7 @@ import {
   EVENT_TYPES,
   REGIONS,
   TAG_KINDS,
+  taipeiIsoDate,
   type EventType,
   type Region,
   type TagKind,
@@ -168,16 +169,43 @@ export function addDays(isoDate: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-const taipeiDateFmt = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Taipei',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
+/** 某時間點的台灣日期 YYYY-MM-DD（共用 @aeh/core） */
+export { taipeiIsoDate };
 
-/** 某時間點的台灣日期 YYYY-MM-DD */
-export function taipeiIsoDate(at: Date): string {
-  return taipeiDateFmt.format(at);
+// ── 快速日期區間（「本週末」等捷徑） ─────────────────────────
+
+export const DATE_PRESETS = ['today', 'weekend', 'next30'] as const;
+export type DatePreset = (typeof DATE_PRESETS)[number];
+
+export const DATE_PRESET_LABEL: Record<DatePreset, string> = {
+  today: '今天',
+  weekend: '本週末',
+  next30: '30 天內',
+};
+
+/**
+ * 捷徑 → 台灣日期區間（含頭尾）。
+ * 週末：週一～五 → 這週六日；週六 → 今明兩天；週日 → 只有今天。
+ */
+export function datePresetRange(preset: DatePreset, now: Date): { from: string; to: string } {
+  const today = taipeiIsoDate(now);
+  if (preset === 'today') return { from: today, to: today };
+  if (preset === 'next30') return { from: today, to: addDays(today, 29) };
+  const [y, m, d] = today.split('-').map(Number) as [number, number, number];
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  if (wd === 0) return { from: today, to: today };
+  const sat = addDays(today, 6 - wd);
+  return { from: wd === 6 ? today : sat, to: addDays(sat, 1) };
+}
+
+/** 目前的 from/to 是否正好等於某個捷徑（用於標示「已選」） */
+export function activeDatePreset(q: DiscoveryQuery, now: Date): DatePreset | null {
+  if (!q.from || !q.to) return null;
+  for (const p of DATE_PRESETS) {
+    const r = datePresetRange(p, now);
+    if (r.from === q.from && r.to === q.to) return p;
+  }
+  return null;
 }
 
 export function monthBounds(month: string): { start: string; endExclusive: string } {

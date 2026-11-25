@@ -256,3 +256,25 @@ interface Scraper {
 | D5 | 告警管道 | Slack Incoming Webhook（已建立）；URL 於 `.env` 的 `SLACK_WEBHOOK_URL` 設定，不進版控 |
 | D6 | Phase 0 執行方式 | 併入 Phase 1：T0–T5 ＋ 前三個擷取器完成即開始 PoC 收資料 |
 | D7 | 其它代理商選擇 | 待 PoC 檢視各官網結構後決定 |
+
+---
+
+## 10. Phase 3：訂閱與推播 🟡（2026-11-25 實作，決策待確認）
+
+> 企劃 §3-3：收藏活動、訂閱代理商／作品／聲優標籤或活動類型；透過 LINE 官方帳號或 Web Push 推送新活動上架與開賣／舉辦前一天提醒（固定中文模板）。
+
+| # | 議題 | 本次採用（🟡） | 理由 / 替代方案 |
+|---|---|---|---|
+| P1 | 使用者身分 | **匿名訪客**：首次收藏／訂閱時建立，httpOnly cookie 存隨機 token，DB 只存 SHA-256 | MVP 不做會員；缺點是換裝置／清 cookie 會遺失（LINE 綁定可在新瀏覽器重新綁定移轉）。日後可加 LINE Login 作為帳號 |
+| P2 | 推播管道 | **Web Push 與 LINE 兩者皆支援**，站內通知匣永遠有 | Web Push 免費但 iOS 需加入主畫面；LINE 觸及率高但免費方案每月訊息數有上限 |
+| P3 | LINE 綁定 | 網站產生 6 碼綁定碼（10 分鐘），使用者加好友後傳「綁定 XXXXXX」；webhook 驗簽章後綁定 userId | 不需 LINE Login；不取得個資 |
+| P4 | 提醒時機 | 開賣前 24 小時、活動前一天 18:00（皆可設定） | 錯過區間不補發；開賣／開始時間變更會再提醒一次 |
+| P5 | 洗版控制 | 一次比對命中 > 3 筆 → 合併摘要；勿擾 23–8 點延後；測試通知每分鐘 1 則 | |
+| P6 | 本機開發 | `NOTIFY_MODE=console`（預設）：不需任何金鑰，推播寫入 worker log | 符合 C7 |
+| P7 | 新活動判定 | `event.new_event_notified_at IS NULL` 且已發布；migration 把既有活動標為已通知 | 隱藏後重新發布不重複通知 |
+
+**資料表**：`subscriber`、`favorite`、`tag_follow`、`type_follow`、`push_subscription`、`notification`（`dedupe_key` UNIQUE）、`notification_delivery`（`pending / sent / simulated / failed / gone`，重試 ≤ 3 次）。
+
+**排程**：worker 內 `CRON_NOTIFY`（預設每 5 分鐘）執行 notify（比對 → 提醒 → 投遞），與擷取分屬不同 promise 鏈，仍為單一 process、無佇列（C11）。
+
+**尚未涵蓋**：活動取消／改期主動通知、會員帳號與跨裝置同步、推播點擊率統計、LINE 免費方案額度監控。

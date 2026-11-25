@@ -1,11 +1,17 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseQuietHours, type QuietHours } from '@aeh/notify';
 import { z } from 'zod';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const rootEnv = resolve(REPO_ROOT, '.env');
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
+
+const optionalString = z
+  .string()
+  .optional()
+  .transform((v) => (v?.trim() ? v.trim() : undefined));
 
 const EnvSchema = z.object({
   DATABASE_URL: z.url(),
@@ -60,6 +66,26 @@ const EnvSchema = z.object({
     .min(1)
     .max(30, '快照保留不得超過 30 天（C9）')
     .default(30),
+  // ── 推播（Phase 3）──────────────────────────────────────
+  /** console：只寫 log（本機預設，不需金鑰）；live：實際送出（缺金鑰的管道仍退回模擬） */
+  NOTIFY_MODE: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.enum(['console', 'live']).default('console'),
+  ),
+  /** 通知內連結的網站網址（LINE 訊息需要完整網址） */
+  PUBLIC_BASE_URL: z.url().default('http://localhost:3000'),
+  WEB_PUSH_VAPID_PUBLIC_KEY: optionalString,
+  WEB_PUSH_VAPID_PRIVATE_KEY: optionalString,
+  /** VAPID 聯絡資訊：mailto: 或 https: */
+  WEB_PUSH_SUBJECT: optionalString,
+  LINE_CHANNEL_ACCESS_TOKEN: optionalString,
+  /** 勿擾時段（台灣時間，起-迄小時）；留空 = 不限 */
+  NOTIFY_QUIET_HOURS: z.string().default('23-8'),
+  NOTIFY_SALE_LEAD_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+  NOTIFY_EVENT_REMINDER_HOUR: z.coerce.number().int().min(0).max(23).default(18),
+  NOTIFY_DIGEST_THRESHOLD: z.coerce.number().int().min(1).default(3),
+  NOTIFICATION_RETENTION_DAYS: z.coerce.number().int().min(7).default(90),
+  CRON_NOTIFY: z.string().default('*/5 * * * *'),
   CRON_DAILY: z.string().default('0 4 * * *'),
   CRON_WEEKLY: z.string().default('0 5 * * 1'),
   CRON_CLEANUP: z.string().default('30 3 * * *'),
@@ -70,6 +96,7 @@ const EnvSchema = z.object({
 export type Env = z.infer<typeof EnvSchema> & {
   SNAPSHOT_DIR_ABS: string;
   ALERT_MODE_RESOLVED: 'console' | 'slack';
+  QUIET_HOURS: QuietHours | null;
 };
 
 export function loadEnv(): Env {
@@ -82,8 +109,19 @@ export function loadEnv(): Env {
   if (alertMode === 'slack' && !env.SLACK_WEBHOOK_URL) {
     throw new Error('ALERT_MODE=slack 需要設定 SLACK_WEBHOOK_URL');
   }
+  const vapid = [
+    env.WEB_PUSH_VAPID_PUBLIC_KEY,
+    env.WEB_PUSH_VAPID_PRIVATE_KEY,
+    env.WEB_PUSH_SUBJECT,
+  ];
+  if (vapid.some(Boolean) && !vapid.every(Boolean)) {
+    throw new Error(
+      'WEB_PUSH_VAPID_PUBLIC_KEY / WEB_PUSH_VAPID_PRIVATE_KEY / WEB_PUSH_SUBJECT 需同時設定',
+    );
+  }
   return {
     ...env,
+    QUIET_HOURS: parseQuietHours(env.NOTIFY_QUIET_HOURS),
     ALERT_MODE_RESOLVED: alertMode,
     // 相對路徑一律以 repo 根目錄為基準，避免因 pnpm --filter 改變 cwd 而寫錯位置
     SNAPSHOT_DIR_ABS: isAbsolute(env.SNAPSHOT_DIR)

@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     '@aeh/db',
     '@aeh/dedup',
     '@aeh/normalize',
+    '@aeh/notify',
     '@aeh/scrapers',
     '@aeh/tagger',
   ],
