@@ -1,9 +1,12 @@
-import { createDb } from '../client';
+import { createDb, parseDatabasePrepare } from '../client';
 import { loadRootEnv, requireEnv } from '../env';
 import { runMigrations } from '../migrate';
 
 loadRootEnv();
-const { db, close } = createDb(requireEnv('DATABASE_URL'), { max: 1 });
+const { db, close } = createDb(requireEnv('DATABASE_URL'), {
+  max: 1,
+  prepare: parseDatabasePrepare(process.env.DATABASE_PREPARE),
+});
 try {
   await runMigrations(db);
   console.log('[db:migrate] 完成');

@@ -61,7 +61,7 @@ export function createContext(
   env: Env,
   opts: { network: boolean; config?: Partial<PipelineConfig> },
 ): { deps: PipelineDeps; handle: DbHandle } {
-  const handle = createDb(env.DATABASE_URL);
+  const handle = createDb(env.DATABASE_URL, { prepare: env.DATABASE_PREPARE });
   const store = new SnapshotStore(env.SNAPSHOT_DIR_ABS);
   const client = opts.network
     ? new PoliteClient({

@@ -1,4 +1,4 @@
-import { createDb } from '../client';
+import { createDb, parseDatabasePrepare } from '../client';
 import { loadDictionaries, seedDictionaries, type Dictionaries } from '../dictionaries';
 import { DEFAULT_DICTIONARY_DIR, loadRootEnv, requireEnv } from '../env';
 
@@ -14,7 +14,10 @@ try {
   process.exit(1);
 }
 
-const { db, close } = createDb(requireEnv('DATABASE_URL'), { max: 1 });
+const { db, close } = createDb(requireEnv('DATABASE_URL'), {
+  max: 1,
+  prepare: parseDatabasePrepare(process.env.DATABASE_PREPARE),
+});
 try {
   const result = await seedDictionaries(db, dicts);
   console.log('[db:seed] 完成', result);
