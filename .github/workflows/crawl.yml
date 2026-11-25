@@ -3,7 +3,7 @@
 # - 排程只在 repository variable WORKER_ENABLED = 'true' 時執行（DB 尚未就緒前不會每天失敗）
 # - 手動執行（workflow_dispatch）不受 WORKER_ENABLED 限制
 # - 需要的設定：secrets.DATABASE_URL（Neon direct 連線字串）、vars.CRAWL_USER_AGENT、
-#   選用 secrets.SLACK_WEBHOOK_URL
+#   選用 secrets.SLACK_WEBHOOK_URL（手動執行 alert-test 可確認是否送得到 Slack）
 # - repo 是 public → 執行紀錄公開；機密只放 secrets（log 中會自動遮蔽）
 name: crawl
 
@@ -16,7 +16,7 @@ on:
       task:
         description: 要執行的工作
         type: choice
-        options: [daily, weekly, cleanup, db-setup]
+        options: [daily, weekly, cleanup, db-setup, alert-test]
         default: daily
       dry_run:
         description: 擷取但不寫入 DB（只適用 daily / weekly）
@@ -78,6 +78,11 @@ jobs:
           !cancelled() && env.DRY_RUN == ''
           && (env.TASK == 'daily' || env.TASK == 'cleanup')
         run: pnpm --filter @aeh/worker cli cleanup
+
+      # 送一則測試告警到 secrets.SLACK_WEBHOOK_URL；未設定或送出失敗時這個步驟失敗
+      - name: 測試告警（Slack）
+        if: env.TASK == 'alert-test'
+        run: pnpm --filter @aeh/worker cli alert-test
 
       - name: DB 初始化（migration ＋ 字典 seed，可重複執行）
         if: env.TASK == 'db-setup'

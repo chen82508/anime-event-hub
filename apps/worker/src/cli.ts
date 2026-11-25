@@ -5,6 +5,7 @@ import { generateVAPIDKeys } from 'web-push';
 import { createContext, createNotifyDeps } from './context';
 import { loadEnv } from './env';
 import { logger } from './logger';
+import { sendTestAlert } from './alerts';
 import { cleanup, dedupExisting } from './maintenance';
 import { runNotify } from './notify/job';
 import { runSources, type RunMode, type RunSummary } from './pipeline';
@@ -18,11 +19,12 @@ const USAGE = `用法：
   pnpm --filter @aeh/worker cli cleanup              （刪除逾期快照與通知、標記已結束活動）
   pnpm --filter @aeh/worker notify [--dry-run]       （新活動上架比對、收藏提醒、送出推播）
   pnpm --filter @aeh/worker cli vapid                （產生 Web Push 用的 VAPID 金鑰）
+  pnpm --filter @aeh/worker cli alert-test           （送一則測試告警，確認 Slack webhook 設定）
 
 來源 id：${SOURCE_IDS.join(', ')}
 --all 只執行 DB 中 enabled = true 的來源；--schedule 再限定擷取頻率（與排程程序相同，供 GitHub Actions 使用）。`;
 
-const COMMANDS = ['crawl', 'reparse', 'dedup', 'cleanup', 'notify', 'vapid'] as const;
+const COMMANDS = ['crawl', 'reparse', 'dedup', 'cleanup', 'notify', 'vapid', 'alert-test'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const isCommand = (v: string | undefined): v is Command => COMMANDS.includes(v as Command);
@@ -78,6 +80,32 @@ async function main(): Promise<number> {
   }
 
   const env = loadEnv();
+
+  if (command === 'alert-test') {
+    const runUrl =
+      process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+        : null;
+    const r = await sendTestAlert({
+      mode: env.ALERT_MODE_RESOLVED,
+      ...(env.SLACK_WEBHOOK_URL ? { webhookUrl: env.SLACK_WEBHOOK_URL } : {}),
+      origin: runUrl ? `GitHub Actions ${runUrl}` : '本機',
+      logger,
+    });
+    console.log(`送出內容：\n${r.text}\n`);
+    if (r.status === 'sent') {
+      console.log('✅ 已送到 Slack');
+      return 0;
+    }
+    if (r.status === 'console') {
+      console.log(
+        '⚠️ 告警目前是 console 模式（未設定 SLACK_WEBHOOK_URL 或 ALERT_MODE=console），沒有送到 Slack',
+      );
+      return 1;
+    }
+    console.log(`❌ Slack 送出失敗：${r.error}`);
+    return 1;
+  }
   const network = command === 'crawl' && !values['from-snapshot'];
   const { deps, handle } = createContext(env, {
     network,
