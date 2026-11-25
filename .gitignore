@@ -17,3 +17,6 @@ var/*
 
 .DS_Store
 *.log
+
+# 本機部署計劃（展示用，不簽入）
+docs/deployment-plan.md

@@ -94,8 +94,11 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string | null }
     unsupported: '這個瀏覽器不支援推播通知，可改用 LINE 接收。',
     'needs-install':
       'iPhone／iPad 請先用 Safari 的「分享 → 加入主畫面」，再從主畫面開啟本站來啟用推播。',
+    // 開發指令只給開發者看；正式站未設定金鑰時與 LINE 區塊一致，只說尚未開放
     'not-configured':
-      '網站尚未設定推播金鑰（本機開發：執行 pnpm --filter @aeh/worker cli vapid）。',
+      process.env.NODE_ENV === 'production'
+        ? '瀏覽器推播尚未開放。'
+        : '網站尚未設定推播金鑰（本機開發：執行 pnpm --filter @aeh/worker cli vapid）。',
     denied: '你已封鎖本站的通知，請到瀏覽器的網站設定中允許通知後再試。',
     off: '尚未開啟。開啟後，這個瀏覽器會收到新活動與開賣提醒。',
     on: '已開啟：這個瀏覽器會收到通知。',
