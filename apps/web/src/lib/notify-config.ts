@@ -19,6 +19,8 @@ export interface WebNotifyConfig {
   lineAccessToken: string | null;
   /** 本機模擬：可在「我的追蹤」直接模擬 LINE 綁定（production 一律關閉） */
   allowDevSimulation: boolean;
+  /** 顯示給開發者看的說明（console 模式寫到 worker log 等）；production 一律隱藏 */
+  showDevNotes: boolean;
   /** 與 worker 相同的提醒設定（顯示說明文字用） */
   saleLeadHours: number;
   eventReminderHour: number;
@@ -52,6 +54,7 @@ export function webNotifyConfig(): WebNotifyConfig {
     lineChannelSecret: v('LINE_CHANNEL_SECRET'),
     lineAccessToken: v('LINE_CHANNEL_ACCESS_TOKEN'),
     allowDevSimulation: mode === 'console' && process.env.NODE_ENV !== 'production',
+    showDevNotes: process.env.NODE_ENV !== 'production',
     saleLeadHours: intEnv('NOTIFY_SALE_LEAD_HOURS', DEFAULT_SALE_LEAD_HOURS, 1, 168),
     eventReminderHour: intEnv('NOTIFY_EVENT_REMINDER_HOUR', DEFAULT_EVENT_REMINDER_HOUR, 0, 23),
     quietHours: quietHoursEnv(),

@@ -176,14 +176,17 @@ export default async function MePage() {
       <section id="channels" className="me-section">
         <div className="section-head">
           <h2>通知管道</h2>
-          {sub && <TestNotificationButton mode={cfg.mode} />}
+          {sub && <TestNotificationButton mode={cfg.mode} showDevNotes={cfg.showDevNotes} />}
         </div>
-        {cfg.mode === 'console' && (
-          <p className="dev-note">
-            🧪 本機模擬模式（NOTIFY_MODE=console）：推播不會真的送出，內容會寫在 worker 的
-            log；通知匣照常運作。
-          </p>
-        )}
+        {cfg.mode === 'console' &&
+          (cfg.showDevNotes ? (
+            <p className="dev-note">
+              🧪 本機模擬模式（NOTIFY_MODE=console）：推播不會真的送出，內容會寫在 worker 的
+              log；通知匣照常運作。
+            </p>
+          ) : (
+            <p className="field-hint">目前只提供站內通知匣，瀏覽器推播與 LINE 通知尚未開放。</p>
+          ))}
         <div className="channel">
           <h3>🔔 瀏覽器推播</h3>
           <PushToggle vapidPublicKey={cfg.vapidPublicKey} />

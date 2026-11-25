@@ -3,7 +3,14 @@
 import { useState, useTransition } from 'react';
 import { deleteMyDataAction, sendTestNotificationAction } from '@/app/(public)/actions';
 
-export function TestNotificationButton({ mode }: { mode: 'console' | 'live' }) {
+export function TestNotificationButton({
+  mode,
+  showDevNotes,
+}: {
+  mode: 'console' | 'live';
+  /** false（production）時不提 worker log 等開發細節 */
+  showDevNotes: boolean;
+}) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   return (
@@ -20,9 +27,11 @@ export function TestNotificationButton({ mode }: { mode: 'console' | 'live' }) {
                 ? {
                     ok: true,
                     text:
-                      mode === 'console'
-                        ? '已加入通知匣。本機模擬模式：worker 會在 5 分鐘內把推播內容寫到 log。'
-                        : '已加入通知匣，推播會在 5 分鐘內送出。',
+                      mode === 'live'
+                        ? '已加入通知匣，推播會在 5 分鐘內送出。'
+                        : showDevNotes
+                          ? '已加入通知匣。本機模擬模式：worker 會在 5 分鐘內把推播內容寫到 log。'
+                          : '已加入通知匣。',
                   }
                 : { ok: false, text: r.error },
             );
