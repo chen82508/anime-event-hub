@@ -15,6 +15,11 @@ const optionalString = z
 
 const EnvSchema = z.object({
   DATABASE_URL: z.url(),
+  /** 經 transaction 模式 pooler 連線時設 false（停用具名 prepared statement）；預設 true */
+  DATABASE_PREPARE: z
+    .enum(['true', 'false', ''])
+    .optional()
+    .transform((v) => v !== 'false'),
   CRAWL_USER_AGENT: z.string().min(1),
   CRAWL_MIN_INTERVAL_MS: z.coerce.number().int().min(3000, '規格要求同 host 間隔 >= 3000ms'),
   SNAPSHOT_DIR: z.string().default('./var/snapshots'),
