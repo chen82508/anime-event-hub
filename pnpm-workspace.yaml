@@ -27,6 +27,9 @@ catalog:
   react-dom: ^19.3.1
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
+  # Phase 3 推播（VAPID / RFC 8291 加密）
+  web-push: ^4.0.0
+  '@types/web-push': ^3.6.4
 
 # pnpm 預設不執行相依套件的 install script；僅允許下列必要者
 allowBuilds:

@@ -3,7 +3,27 @@ import { taipeiIsoDate } from '@/lib/public/filters';
 import { EventCard } from './EventCard';
 
 /** 列表檢視：依開始月份分段（時間軸）。進行中的長期活動排在最前面「進行中」。 */
-export function EventList({ events, now }: { events: PublicEventListItem[]; now: Date }) {
+export function EventList({
+  events,
+  now,
+  favoriteIds = new Set(),
+  groupByMonth = true,
+}: {
+  events: PublicEventListItem[];
+  now: Date;
+  favoriteIds?: ReadonlySet<number>;
+  /** false：不分段（「我的收藏」） */
+  groupByMonth?: boolean;
+}) {
+  if (!groupByMonth) {
+    return (
+      <div className="event-grid">
+        {events.map((e) => (
+          <EventCard key={e.id} event={e} now={now} favorited={favoriteIds.has(e.id)} />
+        ))}
+      </div>
+    );
+  }
   const groups: { key: string; label: string; events: PublicEventListItem[] }[] = [];
   for (const e of events) {
     const started = e.startAt && e.startAt.getTime() <= now.getTime();
@@ -29,7 +49,7 @@ export function EventList({ events, now }: { events: PublicEventListItem[]; now:
           </h2>
           <div className="event-grid">
             {g.events.map((e) => (
-              <EventCard key={e.id} event={e} now={now} />
+              <EventCard key={e.id} event={e} now={now} favorited={favoriteIds.has(e.id)} />
             ))}
           </div>
         </section>

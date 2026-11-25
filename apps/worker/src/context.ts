@@ -5,7 +5,46 @@ import { createRegistry } from '@aeh/scrapers';
 import { createAlerter } from './alerts';
 import type { Env } from './env';
 import { logger } from './logger';
+import { createChannels } from './notify/channels';
+import type { NotifyConfig, NotifyDeps } from './notify/job';
 import type { PipelineConfig, PipelineDeps } from './pipeline';
+
+export function notifyConfig(env: Env): NotifyConfig {
+  return {
+    quietHours: env.QUIET_HOURS,
+    saleLeadHours: env.NOTIFY_SALE_LEAD_HOURS,
+    eventReminderHour: env.NOTIFY_EVENT_REMINDER_HOUR,
+    digestThreshold: env.NOTIFY_DIGEST_THRESHOLD,
+  };
+}
+
+/** notify 工作的相依（與擷取管線共用同一個 DB 連線） */
+export function createNotifyDeps(env: Env, db: DbHandle['db']): NotifyDeps {
+  return {
+    db,
+    logger,
+    config: notifyConfig(env),
+    channels: createChannels(
+      {
+        mode: env.NOTIFY_MODE,
+        baseUrl: env.PUBLIC_BASE_URL,
+        ...(env.WEB_PUSH_VAPID_PUBLIC_KEY && env.WEB_PUSH_VAPID_PRIVATE_KEY && env.WEB_PUSH_SUBJECT
+          ? {
+              webPush: {
+                publicKey: env.WEB_PUSH_VAPID_PUBLIC_KEY,
+                privateKey: env.WEB_PUSH_VAPID_PRIVATE_KEY,
+                subject: env.WEB_PUSH_SUBJECT,
+              },
+            }
+          : {}),
+        ...(env.LINE_CHANNEL_ACCESS_TOKEN
+          ? { lineAccessToken: env.LINE_CHANNEL_ACCESS_TOKEN }
+          : {}),
+      },
+      logger,
+    ),
+  };
+}
 
 export function pipelineConfig(env: Env, overrides: Partial<PipelineConfig> = {}): PipelineConfig {
   return {

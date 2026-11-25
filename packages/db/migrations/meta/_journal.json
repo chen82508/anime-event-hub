@@ -22,6 +22,13 @@
       "when": 1794980775019,
       "tag": "0002_status_lock_run_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795594855980,
+      "tag": "0003_subscriptions_notifications",
+      "breakpoints": true
     }
   ]
 }

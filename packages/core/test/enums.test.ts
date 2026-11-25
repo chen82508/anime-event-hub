@@ -5,6 +5,10 @@ import {
   EVENT_STATUS_LABEL,
   EVENT_TYPES,
   EVENT_TYPE_LABEL,
+  NOTIFICATION_KINDS,
+  NOTIFICATION_KIND_LABEL,
+  NOTIFY_CHANNELS,
+  NOTIFY_CHANNEL_LABEL,
   REGIONS,
   REGION_LABEL,
   REVIEW_REASONS,
@@ -24,6 +28,8 @@ describe('enums', () => {
       [EVENT_STATUSES, EVENT_STATUS_LABEL],
       [REVIEW_REASONS, REVIEW_REASON_LABEL],
       [TAG_KINDS, TAG_KIND_LABEL],
+      [NOTIFICATION_KINDS, NOTIFICATION_KIND_LABEL],
+      [NOTIFY_CHANNELS, NOTIFY_CHANNEL_LABEL],
     ];
     for (const [values, labels] of cases) {
       expect(Object.keys(labels).sort()).toEqual([...values].sort());

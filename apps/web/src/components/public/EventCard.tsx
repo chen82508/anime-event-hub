@@ -8,15 +8,25 @@ import {
   hasEnded,
   saleState,
 } from '@/lib/public/format';
+import { FavoriteButton } from './FavoriteButton';
 import { TagChips } from './TagChips';
 import { TypeBadge } from './TypeBadge';
 
 /** 列表卡片：名稱（原文）、時間、場館/地區、票價、開賣狀態、標籤 */
-export function EventCard({ event: e, now }: { event: PublicEventListItem; now: Date }) {
+export function EventCard({
+  event: e,
+  now,
+  favorited = false,
+}: {
+  event: PublicEventListItem;
+  now: Date;
+  favorited?: boolean;
+}) {
   const sale = saleState(e.saleStartAt, now);
   const ended = e.status === 'ended' || hasEnded(e.startAt, e.endAt, now);
   return (
-    <article className={`event-card${ended ? ' is-ended' : ''}`}>
+    <article className={`event-card type-${e.type ?? 'other'}${ended ? ' is-ended' : ''}`}>
+      <FavoriteButton eventId={e.id} title={e.title} initial={favorited} />
       <div className="event-card-meta">
         {e.type && <TypeBadge type={e.type} />}
         {e.region && <span className="region">{REGION_LABEL[e.region]}</span>}

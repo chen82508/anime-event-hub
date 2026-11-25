@@ -8,7 +8,8 @@
 
 目前進度：**Phase 1 的 T0–T10 皆已實作**（core、db、字典、normalize、http、scrapers、tagger、dedup、worker、/admin）。擷取器：KKTIX、CWT、FF、曼迪以 2026-11-18 的真實快照為 fixture；**木棉花官網無法連線，擷取器為未驗證（synthetic）狀態，pipeline 預設略過**；tica／comic_exhibition 尚未實作（待 PoC 檢視官網）。
 
-**Phase 2（前台 Discovery）進行中**：列表／月曆、多條件篩選、活動詳情已實作；訂閱推播屬 Phase 3。
+**Phase 2（前台 Discovery）完成**：列表／月曆、多條件篩選（含快速日期）、活動詳情。
+**Phase 3（訂閱與推播）已實作**：匿名收藏／訂閱、`/me`、Web Push ＋ LINE（`NOTIFY_MODE=console` 本機模擬）、worker `notify` 排程。設計決策見 tech-spec §10（🟡 待確認）。
 
 ---
 
@@ -42,6 +43,7 @@ packages/
   normalize/     @aeh/normalize  文字（NFKC、臺/台…）、日期、票價、場館/地區解析
   tagger/        @aeh/tagger     類型推論、別名字典比對（最長匹配優先）
   dedup/         @aeh/dedup      去重鍵（正規化標題＋開始日期＋場館）、候選、合併
+  notify/        @aeh/notify     訂閱比對、提醒時機、勿擾時段、固定繁中推播模板、LINE 簽章（純函式）
   scrapers/      @aeh/scrapers   src/<source>/ 每來源一個子目錄（kktix, cwt, muse, ff, mightymedia…）
 data/dictionaries/   縣市、場館、類型關鍵字、來源、作品/代理商/聲優/歌手別名（YAML，seed 用）
 docker/postgres/init/ DB 首次初始化 SQL（pg_trgm、測試 DB）
@@ -52,11 +54,12 @@ var/snapshots/       原始快照（gitignored）
 
 ```
 core ← normalize / tagger / dedup ← scrapers ← apps/*
+core ← notify ← apps/*
 core ← http ← apps/*
 core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 ```
 
-- `core`、`normalize`、`tagger`、`dedup` 以及 `scrapers` 的 parse 函式**必須是純函式**：不碰 DB、不碰網路、不讀環境變數、不使用無時區的 `new Date(string)`。ESLint `no-restricted-imports` 會擋下違規 import。
+- `core`、`normalize`、`tagger`、`dedup`、`notify` 以及 `scrapers` 的 parse 函式**必須是純函式**：不碰 DB、不碰網路、不讀環境變數、不使用無時區的 `new Date(string)`。ESLint `no-restricted-imports` 會擋下違規 import。
 - 內部套件**不需要 build**：`package.json` 的 `exports` 直接指向 `./src/index.ts`，由 tsx / vitest / Next（`transpilePackages`）處理。新增被 web 使用的套件時，記得加進 `apps/web/next.config.ts` 的 `transpilePackages`。
 - 套件命名 `@aeh/<name>`；workspace 相依寫 `"workspace:*"`；第三方版本統一寫在 `pnpm-workspace.yaml` 的 `catalog:`，各套件以 `"catalog:"` 引用。
 
@@ -103,4 +106,14 @@ core ← db   ← apps/*（db 只給 apps 與 pipeline 編排層用）
 - **KKTIX 規模門檻**：場館不在字典時，票價達 `KKTIX_MIN_PRICE_MAX` 或命中作品/聲優/歌手標籤（`KKTIX_TAG_PASSES`）才算達門檻。
 - **後台編輯**：讓已發布活動不再符合發布條件時，自動退回待審並補上原因（不會撞 DB CHECK）。
 - **前台**（`apps/web/src/app/(public)`，Phase 2）：查詢在 `@aeh/db` 的 `repositories/public-event.ts`，只回傳 `published`（月曆可含 `ended`），不回傳審核原因／`parsed`。篩選狀態全部放在 URL（`lib/public/filters.ts` 純函式解析，無效值忽略）；群組內 OR、群組間 AND。「已開賣」只依 `sale_start_at` 判定，未提供者不猜測。詳情頁必附主要來源連結（C8）。`loading.tsx` 只放在 `(discovery)` 群組：放在詳情頁上層會讓 `notFound()` 回 200。CSS 以 `--s-` 變數、`.site` 範圍隔離 admin 樣式。
-- **測試覆蓋率**：`pnpm coverage`（normalize / tagger / dedup，門檻 80%）。
+- **測試覆蓋率**：`pnpm coverage`（normalize / tagger / dedup / notify，門檻 80%）。前台 HTTP 煙霧測試：`E2E_BASE_URL=http://localhost:3000 pnpm --filter @aeh/web test:e2e`。
+
+### 訂閱與推播重點（Phase 3）
+
+- **身分**：不做會員。第一次收藏／訂閱（Server Action）才建立 `subscriber`，cookie `aeh_sid` 存隨機 token，DB 只存 SHA-256（`apps/web/src/lib/subscriber.ts`）。Server Component 只讀（`currentSubscriber`），不建立。
+- **資料表**（migration `0003`）：`subscriber`、`favorite`、`tag_follow`、`type_follow`、`push_subscription`、`notification`（`dedupe_key` UNIQUE → 重跑不重複）、`notification_delivery`（每則通知 × 每個站外目標；`pending/sent/simulated/failed/gone`）、`event.new_event_notified_at`（migration 把既有已發布活動標為已通知，避免首次部署洗版）。
+- **文案**：`@aeh/notify` 固定模板，日期／地點格式與前台共用 `@aeh/core` 的 `format.ts`；通知一律連到站內活動頁（再由詳情頁導流官方連結，C8）。標題保留原文，只清控制字元與截斷。
+- **notify 工作**（`apps/worker/src/notify/job.ts`，排程 `CRON_NOTIFY` 每 5 分鐘、CLI `notify`）：①已發布且 `new_event_notified_at IS NULL` 的活動 × 訂閱 → 通知（超過 `NOTIFY_DIGEST_THRESHOLD` 合併摘要）②收藏提醒（開賣前 `NOTIFY_SALE_LEAD_HOURS`、前一天 `NOTIFY_EVENT_REMINDER_HOUR` 點；dedupe key 含開賣／開始時間，改期會再提醒）③投遞。勿擾時段只延後站外投遞（`not_before`），通知匣不受影響；但提醒若延後會超過開賣／開始時間，改為立即送出（`NotificationInput.notBefore` 逐筆覆寫）。notify 走自己的 promise 鏈（不等擷取），上一輪未結束就略過。
+- **管道**（`apps/worker/src/notify/channels.ts`）：`NOTIFY_MODE=console` 只寫 log、標 `simulated`；live 缺金鑰的管道退回模擬。Web Push 用 `web-push` v4（**ESM、只有具名 export**）；404/410 → `gone` 並刪訂閱。LINE push 帶由投遞 id 推得的 `X-Line-Retry-Key`（409 視為已送）。失敗重試 ≤ 3 次（5→10 分鐘退避）。
+- **安全**：Web Push 端點只接受主要瀏覽器推播服務主機（`isAllowedPushEndpoint`，網站寫入與 worker 送出各檢查一次，防 SSRF）。LINE webhook（`/api/line/webhook`）驗 HMAC 簽章，未設 secret → 503；只處理一對一聊天，不存訊息內容。本機模擬綁定只在 console 模式＋非 production。
+- **前台**：`FavoriteButton`／`FollowButton` 為 client component（`useOptimistic`），Server Actions 在 `app/(public)/actions.ts`（zod 驗證，成功後 `revalidatePath('/', 'layout')`）。Service worker 在 `apps/web/public/sw.js`（只處理 push / notificationclick）。

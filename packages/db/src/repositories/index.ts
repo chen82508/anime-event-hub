@@ -6,3 +6,5 @@ export * from './event';
 export * from './source-item';
 export * from './types';
 export * from './public-event';
+export * from './subscription';
+export * from './notification';

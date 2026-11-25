@@ -9,13 +9,15 @@
     "build": "next build",
     "start": "next start --port 3000",
     "typecheck": "next typegen && tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "vitest run test/e2e"
   },
   "dependencies": {
     "@aeh/core": "workspace:*",
     "@aeh/db": "workspace:*",
     "@aeh/dedup": "workspace:*",
     "@aeh/normalize": "workspace:*",
+    "@aeh/notify": "workspace:*",
     "@aeh/scrapers": "workspace:*",
     "@aeh/tagger": "workspace:*",
     "next": "catalog:",

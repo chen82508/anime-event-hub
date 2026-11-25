@@ -2,6 +2,8 @@
  * 維護作業：cleanup（快照保留 ≤ 30 天、結束活動標記）與 dedup（既有活動的去重重算）。
  */
 import {
+  clearExpiredLinkCodes,
+  deleteOldNotifications,
   deleteSnapshotsBefore,
   event,
   getEvent,
@@ -19,19 +21,30 @@ import type { Logger } from 'pino';
 
 export async function cleanup(
   deps: { db: Database; store: SnapshotStore; logger: Logger },
-  opts: { retentionDays: number; now?: Date },
-): Promise<{ snapshotRows: number; snapshotDirs: string[]; endedEvents: number }> {
+  opts: { retentionDays: number; notificationRetentionDays?: number; now?: Date },
+): Promise<{
+  snapshotRows: number;
+  snapshotDirs: string[];
+  endedEvents: number;
+  notifications: number;
+}> {
   const now = opts.now ?? new Date();
   const cutoff = new Date(now.getTime() - opts.retentionDays * 86_400_000);
   // DB 先刪（source_item.last_snapshot_id 會被設為 NULL），再刪檔案；以台灣日期目錄為單位
   const snapshotRows = await deleteSnapshotsBefore(deps.db, cutoff);
   const snapshotDirs = await deps.store.removeDaysBefore(taipeiDateString(cutoff));
   const endedEvents = await markEndedEvents(deps.db, now);
+  // Phase 3：過舊的站內通知（含投遞紀錄）與過期 LINE 綁定碼
+  const notifications = await deleteOldNotifications(
+    deps.db,
+    new Date(now.getTime() - (opts.notificationRetentionDays ?? 90) * 86_400_000),
+  );
+  await clearExpiredLinkCodes(deps.db, now);
   deps.logger.info(
-    { snapshotRows, snapshotDirs: snapshotDirs.length, endedEvents, cutoff },
+    { snapshotRows, snapshotDirs: snapshotDirs.length, endedEvents, notifications, cutoff },
     'cleanup 完成',
   );
-  return { snapshotRows, snapshotDirs, endedEvents };
+  return { snapshotRows, snapshotDirs, endedEvents, notifications };
 }
 
 /**

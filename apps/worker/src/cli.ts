@@ -1,10 +1,12 @@
 import { parseArgs } from 'node:util';
 import { SOURCE_IDS, type SourceId } from '@aeh/core';
 import { getSnapshot, listSources } from '@aeh/db';
-import { createContext } from './context';
+import { generateVAPIDKeys } from 'web-push';
+import { createContext, createNotifyDeps } from './context';
 import { loadEnv } from './env';
 import { logger } from './logger';
 import { cleanup, dedupExisting } from './maintenance';
+import { runNotify } from './notify/job';
 import { runSources, type RunMode, type RunSummary } from './pipeline';
 
 const USAGE = `用法：
@@ -12,12 +14,14 @@ const USAGE = `用法：
   pnpm crawl   --from-snapshot <raw_snapshot.id>     （以該快照重跑解析，不打網路）
   pnpm reparse --source <id> | --all                （以最近一次成功擷取的快照重跑，不打網路）
   pnpm --filter @aeh/worker cli dedup [--dry-run]    （重算去重鍵並合併同鍵活動）
-  pnpm --filter @aeh/worker cli cleanup              （刪除逾期快照、標記已結束活動）
+  pnpm --filter @aeh/worker cli cleanup              （刪除逾期快照與通知、標記已結束活動）
+  pnpm --filter @aeh/worker notify [--dry-run]       （新活動上架比對、收藏提醒、送出推播）
+  pnpm --filter @aeh/worker cli vapid                （產生 Web Push 用的 VAPID 金鑰）
 
 來源 id：${SOURCE_IDS.join(', ')}
 --all 只執行 DB 中 enabled = true 的來源。`;
 
-const COMMANDS = ['crawl', 'reparse', 'dedup', 'cleanup'] as const;
+const COMMANDS = ['crawl', 'reparse', 'dedup', 'cleanup', 'notify', 'vapid'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const isCommand = (v: string | undefined): v is Command => COMMANDS.includes(v as Command);
@@ -60,6 +64,15 @@ async function main(): Promise<number> {
     return values.help ? 0 : 1;
   }
 
+  if (command === 'vapid') {
+    const keys = generateVAPIDKeys();
+    console.log('把下列內容貼到 .env（私鑰不要進版控）：\n');
+    console.log(`WEB_PUSH_VAPID_PUBLIC_KEY=${keys.publicKey}`);
+    console.log(`WEB_PUSH_VAPID_PRIVATE_KEY=${keys.privateKey}`);
+    console.log('WEB_PUSH_SUBJECT=mailto:你的聯絡信箱');
+    return 0;
+  }
+
   const env = loadEnv();
   const network = command === 'crawl' && !values['from-snapshot'];
   const { deps, handle } = createContext(env, {
@@ -68,9 +81,23 @@ async function main(): Promise<number> {
   });
   try {
     if (command === 'cleanup') {
-      const r = await cleanup(deps, { retentionDays: env.SNAPSHOT_RETENTION_DAYS });
+      const r = await cleanup(deps, {
+        retentionDays: env.SNAPSHOT_RETENTION_DAYS,
+        notificationRetentionDays: env.NOTIFICATION_RETENTION_DAYS,
+      });
       console.log(
-        `刪除快照登記 ${r.snapshotRows} 筆、快照目錄 ${r.snapshotDirs.length} 個；標記已結束活動 ${r.endedEvents} 筆`,
+        `刪除快照登記 ${r.snapshotRows} 筆、快照目錄 ${r.snapshotDirs.length} 個；標記已結束活動 ${r.endedEvents} 筆；刪除過舊通知 ${r.notifications} 筆`,
+      );
+      return 0;
+    }
+    if (command === 'notify') {
+      const s = await runNotify(createNotifyDeps(env, deps.db), { dryRun: values['dry-run'] });
+      const d = s.delivered;
+      console.log(
+        `檢查新活動 ${s.eventsChecked} 筆｜新活動通知 ${s.newEventNotifications}｜提醒 ${s.reminderNotifications}｜建立投遞 ${s.deliveriesCreated}`,
+      );
+      console.log(
+        `投遞：送出 ${d.sent}｜模擬 ${d.simulated}｜待重試 ${d.retry}｜端點失效 ${d.gone}（NOTIFY_MODE=${env.NOTIFY_MODE}）`,
       );
       return 0;
     }
