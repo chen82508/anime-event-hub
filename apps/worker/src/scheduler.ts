@@ -16,6 +16,7 @@ import { logger } from './logger';
 import { cleanup } from './maintenance';
 import { runNotify } from './notify/job';
 import { runSources } from './pipeline';
+import { selectSources } from './sources';
 
 const env = loadEnv();
 const { deps, handle } = createContext(env, { network: true });
@@ -46,9 +47,7 @@ function runNotifyTick(): void {
 }
 
 async function crawlBySchedule(schedule: CrawlSchedule): Promise<void> {
-  const sources = (await listSources(deps.db))
-    .filter((s) => s.enabled && s.schedule === schedule)
-    .map((s) => s.id);
+  const sources = selectSources(await listSources(deps.db), schedule);
   await runSources(deps, sources, { kind: 'crawl', dryRun: false });
 }
 

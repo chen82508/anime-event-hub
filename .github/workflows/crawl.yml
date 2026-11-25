@@ -1,0 +1,86 @@
+# 展示部署用的 worker 排程（docs/deployment-plan.md DS2，本機檔案）：
+# 以 GitHub Actions 取代常駐 worker，每次執行一次性 CLI。
+# - 排程只在 repository variable WORKER_ENABLED = 'true' 時執行（DB 尚未就緒前不會每天失敗）
+# - 手動執行（workflow_dispatch）不受 WORKER_ENABLED 限制
+# - 需要的設定：secrets.DATABASE_URL（Neon direct 連線字串）、vars.CRAWL_USER_AGENT、
+#   選用 secrets.SLACK_WEBHOOK_URL
+# - repo 是 public → 執行紀錄公開；機密只放 secrets（log 中會自動遮蔽）
+name: crawl
+
+on:
+  schedule:
+    - cron: '0 20 * * *' # 台灣 04:00：每日來源 ＋ 清理
+    - cron: '0 21 * * 0' # 台灣週一 05:00：每週來源（年度大展，C8）
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 要執行的工作
+        type: choice
+        options: [daily, weekly, cleanup, db-setup]
+        default: daily
+      dry_run:
+        description: 擷取但不寫入 DB（只適用 daily / weekly）
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# C11：同一時間只有一個 worker 工作（之後的 notify workflow 也用同一個 group）
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  run:
+    if: github.event_name == 'workflow_dispatch' || vars.WORKER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: Asia/Taipei
+      LOG_LEVEL: info
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CRAWL_USER_AGENT: ${{ vars.CRAWL_USER_AGENT }}
+      CRAWL_MIN_INTERVAL_MS: '3000'
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # 快照寫在 runner 的 ./var/snapshots，執行結束即消失（展示版限制，只影響除錯）
+      TASK: >-
+        ${{ github.event_name == 'workflow_dispatch' && inputs.task
+        || (github.event.schedule == '0 21 * * 0' && 'weekly' || 'daily') }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # 版本取自 package.json 的 packageManager
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 檢查設定
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo '::error::未設定 secrets.DATABASE_URL'; exit 1; fi
+          if [ -z "$CRAWL_USER_AGENT" ] && [ "$TASK" != db-setup ]; then
+            echo '::error::未設定 vars.CRAWL_USER_AGENT（需含專案名稱與聯絡網址，R13）'; exit 1
+          fi
+          echo "工作：$TASK $DRY_RUN"
+
+      - name: 擷取（${{ env.TASK }}）
+        if: env.TASK == 'daily' || env.TASK == 'weekly'
+        run: pnpm crawl --schedule "$TASK" $DRY_RUN
+
+      # 每日擷取後清理（擷取失敗也照常執行）；dry-run 時不清理
+      - name: 清理（逾期快照登記、已結束活動、過舊通知）
+        if: >-
+          !cancelled() && env.DRY_RUN == ''
+          && (env.TASK == 'daily' || env.TASK == 'cleanup')
+        run: pnpm --filter @aeh/worker cli cleanup
+
+      - name: DB 初始化（migration ＋ 字典 seed，可重複執行）
+        if: env.TASK == 'db-setup'
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
