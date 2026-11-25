@@ -41,6 +41,58 @@ export function formatSlackText(alert: Alert, suppressed: number): string {
   ].join('\n');
 }
 
+/** 送出 Slack 訊息；回傳 null 表示成功，否則回傳錯誤說明（不拋錯） */
+async function postSlack(
+  webhookUrl: string,
+  text: string,
+  doFetch: typeof fetch,
+): Promise<string | null> {
+  try {
+    const res = await doFetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    return res.ok ? null : `HTTP ${res.status}`;
+  } catch (err) {
+    return (err as Error).message;
+  }
+}
+
+export type TestAlertResult =
+  | { status: 'sent'; text: string }
+  | { status: 'console'; text: string }
+  | { status: 'failed'; text: string; error: string };
+
+/**
+ * 測試告警（CLI `alert-test`）：用正式告警的模板送一則固定訊息，確認 webhook 設定可用。
+ * 不經過節流、不寫入 alert_state，因此不影響之後的真正告警。
+ */
+export async function sendTestAlert(o: {
+  mode: 'console' | 'slack';
+  webhookUrl?: string;
+  /** 執行位置說明，例：「本機」或 GitHub Actions 的 run 連結 */
+  origin: string;
+  logger: Logger;
+  fetch?: typeof fetch;
+}): Promise<TestAlertResult> {
+  const text = formatSlackText(
+    {
+      key: 'test',
+      title: '測試告警',
+      lines: ['這是手動發送的測試訊息，用來確認 Slack webhook 設定正確。', `來源：${o.origin}`],
+    },
+    0,
+  );
+  if (o.mode === 'console' || !o.webhookUrl) {
+    o.logger.warn({ alert: 'test' }, `[ALERT] ${text}`);
+    return { status: 'console', text };
+  }
+  const error = await postSlack(o.webhookUrl, text, o.fetch ?? fetch);
+  return error === null ? { status: 'sent', text } : { status: 'failed', text, error };
+}
+
 export function createAlerter(o: AlerterOptions): Alerter {
   const doFetch = o.fetch ?? fetch;
   return {
@@ -62,21 +114,9 @@ export function createAlerter(o: AlerterOptions): Alerter {
         o.logger.warn({ alert: alert.key }, `[ALERT] ${text}`);
         return;
       }
-      try {
-        const res = await doFetch(o.webhookUrl, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text }),
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (!res.ok)
-          o.logger.error({ status: res.status, key: alert.key }, 'Slack webhook 回應錯誤');
-      } catch (err) {
-        o.logger.error(
-          { err: (err as Error).message, key: alert.key },
-          'Slack webhook 送出失敗（不中斷管線）',
-        );
-      }
+      const error = await postSlack(o.webhookUrl, text, doFetch);
+      if (error !== null)
+        o.logger.error({ err: error, key: alert.key }, 'Slack webhook 送出失敗（不中斷管線）');
     },
     async resolve(key) {
       try {
