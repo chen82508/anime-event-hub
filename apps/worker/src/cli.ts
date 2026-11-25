@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { SOURCE_IDS, type SourceId } from '@aeh/core';
+import { CRAWL_SCHEDULES, SOURCE_IDS, type CrawlSchedule, type SourceId } from '@aeh/core';
 import { getSnapshot, listSources } from '@aeh/db';
 import { generateVAPIDKeys } from 'web-push';
 import { createContext, createNotifyDeps } from './context';
@@ -8,9 +8,10 @@ import { logger } from './logger';
 import { cleanup, dedupExisting } from './maintenance';
 import { runNotify } from './notify/job';
 import { runSources, type RunMode, type RunSummary } from './pipeline';
+import { selectSources } from './sources';
 
 const USAGE = `用法：
-  pnpm crawl   --source <id> | --all  [--dry-run] [--allow-unverified]
+  pnpm crawl   --source <id> | --all | --schedule <daily|weekly>  [--dry-run] [--allow-unverified]
   pnpm crawl   --from-snapshot <raw_snapshot.id>     （以該快照重跑解析，不打網路）
   pnpm reparse --source <id> | --all                （以最近一次成功擷取的快照重跑，不打網路）
   pnpm --filter @aeh/worker cli dedup [--dry-run]    （重算去重鍵並合併同鍵活動）
@@ -19,13 +20,15 @@ const USAGE = `用法：
   pnpm --filter @aeh/worker cli vapid                （產生 Web Push 用的 VAPID 金鑰）
 
 來源 id：${SOURCE_IDS.join(', ')}
---all 只執行 DB 中 enabled = true 的來源。`;
+--all 只執行 DB 中 enabled = true 的來源；--schedule 再限定擷取頻率（與排程程序相同，供 GitHub Actions 使用）。`;
 
 const COMMANDS = ['crawl', 'reparse', 'dedup', 'cleanup', 'notify', 'vapid'] as const;
 type Command = (typeof COMMANDS)[number];
 
 const isCommand = (v: string | undefined): v is Command => COMMANDS.includes(v as Command);
 const isSourceId = (v: string | undefined): v is SourceId => SOURCE_IDS.includes(v as SourceId);
+const isSchedule = (v: string | undefined): v is CrawlSchedule =>
+  CRAWL_SCHEDULES.includes(v as CrawlSchedule);
 
 function printSummary(summaries: RunSummary[], verbose: boolean): void {
   for (const s of summaries) {
@@ -51,6 +54,7 @@ async function main(): Promise<number> {
     options: {
       source: { type: 'string' },
       all: { type: 'boolean', default: false },
+      schedule: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
       'from-snapshot': { type: 'string' },
       'allow-unverified': { type: 'boolean', default: false },
@@ -122,8 +126,19 @@ async function main(): Promise<number> {
     } else {
       mode =
         command === 'crawl' ? { kind: 'crawl', dryRun: values['dry-run'] } : { kind: 'reparse' };
-      if (values.all) {
-        sources = (await listSources(deps.db)).filter((s) => s.enabled).map((s) => s.id);
+      const selectors = [values.all, values.source !== undefined, values.schedule !== undefined];
+      if (selectors.filter(Boolean).length !== 1) {
+        console.log(USAGE);
+        return 1;
+      }
+      if (values.schedule !== undefined) {
+        if (!isSchedule(values.schedule)) {
+          console.log(`--schedule 只能是 ${CRAWL_SCHEDULES.join(' / ')}：${values.schedule}`);
+          return 1;
+        }
+        sources = selectSources(await listSources(deps.db), values.schedule);
+      } else if (values.all) {
+        sources = selectSources(await listSources(deps.db));
       } else if (isSourceId(values.source)) {
         sources = [values.source];
       } else {
