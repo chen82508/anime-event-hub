@@ -20,3 +20,10 @@ var/*
 
 # 本機部署計劃（展示用，不簽入）
 docs/deployment-plan.md
+
+# 課程成果報告與 AI 使用紀錄（另以 Google Drive 提供，不簽入）
+docs/AI 專案成果報告.docx
+docs/AI 使用紀錄.docx
+# Office／LibreOffice 開啟文件時的暫存鎖定檔
+.~lock.*#
+~$*
